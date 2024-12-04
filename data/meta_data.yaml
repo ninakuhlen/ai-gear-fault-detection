@@ -1,0 +1,129 @@
+sample_rate: 4096 # Hz
+columns:
+  - V_in
+  - Measured_RPM
+  - Vibration_1
+  - Vibration_2
+  - Vibration_3
+data_types:
+  - [D, Development]
+  - [E, Evaluation]
+unbalance_levels:
+  - [0, none]
+  - [1, slight]
+  - [2, moderat]
+  - [3, significant]
+  - [4, strong]
+masses:
+  - [0.0, 0.0] # no unbalance
+  - [3.281, 0.003] # slight unbalance
+  - [3.281, 0.003] # moderat unbalance
+  - [3.281, 0.003] # significant unbalance
+  - [6.614, 0.007] # strong unbalance
+radius:
+  - [0.0, 0.0] # no unbalance
+  - [14.0, 0.1] # slight unbalance
+  - [18.5, 0.1] # moderat unbalance
+  - [23.0, 0.1] # significant unbalance
+  - [23.0, 0.1] # strong unbalance
+voltage_level:
+  hold: 20 # s
+  development:
+    start: 2.0 # V
+    end: 10.05 # V
+    step: 0.05 # V
+  evaluation:
+    start: 4.0 # V
+    end: 8.1 # V
+    step: 0.1 # V
+---
+0D:
+  unbalance: none
+  mass: 0.0 # g
+  mass_tolerance: 0.0 # g
+  radius: 0.0 # mm
+  radius_tolerance: 0.0 # mm
+  voltage_start: 2.0 # V
+  voltage_end: 10.05 # V
+  voltage_step: 0.05 # V
+0E:
+  unbalance: none
+  mass: 0.0
+  mass_tolerance: 0.0
+  radius: 0.0
+  radius_tolerance: 0.0
+  voltage_start: 4.0
+  voltage_end: 8.1
+  voltage_step: 0.1
+1D:
+  unbalance: "slight"
+  mass: 3.281
+  mass_tolerance: 0.003
+  radius: 14.0
+  radius_tolerance: 0.1
+  voltage_start: 2.0
+  voltage_end: 10.05
+  voltage_step: 0.05
+1E:
+  unbalance: "slight"
+  mass: 3.281
+  mass_tolerance: 0.003
+  radius: 14.0
+  radius_tolerance: 0.1
+  voltage_start: 4.0
+  voltage_end: 8.1
+  voltage_step: 0.1
+2D:
+  unbalance: "moderat"
+  mass: 3.281
+  mass_tolerance: 0.003
+  radius: 18.5
+  radius_tolerance: 0.1
+  voltage_start: 2.0
+  voltage_end: 10.05
+  voltage_step: 0.05
+2E:
+  unbalance: "moderat"
+  mass: 3.281
+  mass_tolerance: 0.003
+  radius: 18.5
+  radius_tolerance: 0.1
+  voltage_start: 4.0
+  voltage_end: 8.1
+  voltage_step: 0.1
+3D:
+  unbalance: "significant"
+  mass: 3.281
+  mass_tolerance: 0.003
+  radius: 23.0
+  radius_tolerance: 0.1
+  voltage_start: 2.0
+  voltage_end: 10.05
+  voltage_step: 0.05
+3E:
+  unbalance: "significant"
+  mass: 3.281
+  mass_tolerance: 0.003
+  radius: 23.0
+  radius_tolerance: 0.1
+  voltage_start: 4.0
+  voltage_end: 8.1
+  voltage_step: 0.1
+4D:
+  unbalance: "strong"
+  mass: 6.614
+  mass_tolerance: 0.007
+  radius: 23.0
+  radius_tolerance: 0.1
+  voltage_start: 2.0
+  voltage_end: 10.05
+  voltage_step: 0.05
+4E:
+  unbalance: "strong"
+  mass: 6.614
+  mass_tolerance: 0.007
+  radius: 23.0
+  radius_tolerance: 0.1
+  voltage_start: 4.0
+  voltage_end: 8.1
+  voltage_step: 0.1
