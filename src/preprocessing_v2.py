@@ -1,5 +1,6 @@
 import numpy as np
-from pandas import DataFrame, to_timedelta
+from pandas import DataFrame, to_timedelta, Timedelta
+from pandas.api.types import is_integer_dtype, is_float_dtype, is_timedelta64_ns_dtype
 from sklearn.preprocessing import RobustScaler
 
 
@@ -36,6 +37,8 @@ def apply_threshold(
         data = dataframe.copy(deep=True)
     else:
         data = dataframe
+    
+    previous_length = data.shape[0]
 
     if mode == "eq":
         data.drop(data.index[data[column] == threshold], inplace=True)
@@ -47,6 +50,10 @@ def apply_threshold(
         data.drop(data.index[data[column] < threshold], inplace=True)
     elif mode == "gt":
         data.drop(data.index[data[column] > threshold], inplace=True)
+    
+    current_length = data.shape[0]
+
+    print(f"{previous_length - current_length} rows discarded.")
 
     if reset_index:
         data.reset_index(drop=True, inplace=True)
@@ -54,8 +61,74 @@ def apply_threshold(
     if copy:
         return data
 
+def split_by_gradient_direction(dataframe: DataFrame, column: str, periods: int = 1, sign: int = -1):
 
-def add_centrifugal_force(dataframe: DataFrame, label: str, copy: bool = False):
+    if sign not in [1, -1]:
+        raise AttributeError("Invalid sign selected! Please specify 1 for raising and -1 for falling gradient.")
+
+    data = dataframe[column].copy(deep=True)
+
+    differences = data.diff(periods=periods)
+    indices = differences.index[np.sign(differences.values) == -1].tolist()
+
+    dataframes = []
+
+    start = 0
+    for subset_number, index in enumerate(indices):
+        end = index
+        subset = dataframe[start:end]
+        subset.attrs = dataframe.attrs
+        subset.attrs["path"] = subset.attrs["path"].with_stem(subset.attrs["path"].stem + f"_{subset_number}")
+        dataframes.append(subset)
+        start = end
+
+    return dataframes
+
+def discard_data(dataframe: DataFrame, start: int|float|Timedelta = None, end: int| float|Timedelta = 50_000):
+
+    data = dataframe.copy(deep=True)
+
+    previous_length = data.shape[0]
+
+    if start is None and end is None:
+        raise AttributeError("Discarding full dataframe! Please specify either a starting value or an ending value.")
+    elif start is None:
+        start = data.index.min()
+    elif end is None:
+        end = data.index.max()
+
+    if is_float_dtype(data.index):
+        _, current_unit = data.attrs["index_type"].split("_")
+        start, end = float(start), float(end)
+        print(f"Limits interpreted as time in{current_unit}")
+    elif is_integer_dtype(data.index):
+        start, end = int(start), int(end)
+        print("Limits interpreted as integers.")
+    elif is_timedelta64_ns_dtype(data.index):
+        start, end = to_timedelta(start), to_timedelta(end)
+        print("Limits interpreted as time in ns and converted to pandas timedelta64[ns].")
+    else:
+        raise ValueError("Invalid index dtype! Only integers. floats and timedeltas are supported.")
+    
+    delete = (data.index >= start) & (data.index < end)
+
+    data = data[~delete]
+
+    current_length = data.shape[0]
+
+    print(f"{previous_length - current_length} rows discarded.")
+
+    return data
+
+
+def fit_to_sample_rate(dataframe: DataFrame):
+    sample_rate = dataframe.attrs["sample_rate"]
+
+    n = dataframe.shape[0] // sample_rate
+
+
+
+def add_centrifugal_force(dataframe: DataFrame, copy: bool = False):
     if "Measured_RPM" not in dataframe.columns:
         raise AttributeError("DataFrame does not provide a 'Measured_RPM' column!")
 
@@ -71,7 +144,7 @@ def add_centrifugal_force(dataframe: DataFrame, label: str, copy: bool = False):
         return data
 
 
-def add_time(dataframe: DataFrame, unit: str, copy: bool, replace_index: bool):
+def add_time(dataframe: DataFrame, unit: str, replace_index: bool = False):
     """
     Adds a time to the dataset as a float in the specified unit as a new column.
 
@@ -83,37 +156,44 @@ def add_time(dataframe: DataFrame, unit: str, copy: bool, replace_index: bool):
         AttributeError: Invalid unit selected.
         IndexError: No meta.yaml file found.
     """
-    if unit not in ["min", "s", "ms", "us", "ns"]:
-        raise AttributeError("Invalid unit selected!")
 
-    if copy:
-        data = dataframe.copy(deep=True)
-    else:
-        data = dataframe
+    time_map = {
+        "min": 60**(-1),
+        "s": 1e0,
+        "ms": 1e3,
+        "us": 1e6,
+        "ns": 1e9
+    }
 
-    sample_rate = data.attrs["sample_rate"]
+    if unit not in time_map.keys():
+        raise AttributeError(f"Invalid unit selected! Please select between:\t{time_map.keys()}")
+    
+    data = dataframe.copy(deep=True)
 
-    if unit == "min":
-        time = data.index / (60 * sample_rate)
-    elif unit == "s":
-        time = data.index / sample_rate
-    elif unit == "ms":
-        time = 10**3 * data.index / sample_rate
-    elif unit == "us":
-        time = 10**6 * data.index / sample_rate
-    elif unit == "ns":
-        time = 10**9 * data.index / sample_rate
+    index_type = data.attrs["index_type"].split("_")
+    current_type, current_unit = index_type if len(index_type) == 2 else [index_type[0], None]
+   
+    match current_type:
+        case "time":
+            time = time_map[unit] * data.index / time_map[current_unit]
+        case "standard":
+            sample_rate = data.attrs["sample_rate"]
+            time = time_map[unit] * data.index / sample_rate
+        case "timedelta":
+            time = time_map[unit] * data.index.total_seconds()
+        case _:
+            raise ValueError("No matching index type!") 
 
     if replace_index:
         data.index = time
+        data.attrs["index_type"] = f"time_{unit}"
     else:
-        data[f"Time_{unit}"] = time
+        data[f"time_{unit}"] = time
 
-    if copy:
-        return data
+    return data
 
 
-def add_timedelta(dataframe: DataFrame, copy: bool, replace_index: bool):
+def add_timedelta(dataframe: DataFrame, replace_index: bool = False):
     """
     Adds a timestamp to the dataset in a new column.
 
@@ -124,20 +204,30 @@ def add_timedelta(dataframe: DataFrame, copy: bool, replace_index: bool):
         IndexError: No meta.yaml file found.
     """
 
-    if copy:
-        data = dataframe.copy(deep=True)
-    else:
-        data = dataframe
+    data = dataframe.copy(deep=True)
 
-    sample_rate = data.attrs["sample_rate"]
+    index_type = data.attrs["index_type"].split("_")
+    current_type, current_unit = index_type if len(index_type) == 2 else [index_type[0], None]
+
+    match current_type:
+        case "time":
+            timedelta = to_timedelta(data.index, unit=current_unit)
+        case "standard":
+            sample_rate = data.attrs["sample_rate"]
+            timedelta = to_timedelta(data.index / sample_rate, unit="s")
+        case "timedelta":
+            timedelta = data.index
+            print("Index is TimeDelta already.")
+        case _:
+            raise ValueError("No matching index type!") 
 
     if replace_index:
-        data.index = to_timedelta(data.index / sample_rate, unit="s")
+        data.index = timedelta
+        data.attrs["index_type"] = "timedelta"
     else:
-        data[f"Time"] = to_timedelta(data.index / sample_rate, unit="s")
+        data["timedelta"] = timedelta
 
-    if copy:
-        return data
+    return data
 
 
 def step_resample(dataframe: DataFrame, step_size: int):
@@ -158,7 +248,7 @@ def random_resample(
     dataframe: DataFrame, sample_size: int | float, random_state: int = 0
 ):
     """
-    Reduces the dataset to a fixed number of randomly selected rows.
+    Reduces the dataset to a fixed number of randomly selected rows. Resets the index
 
     Args:
         sample_size (int): Fixed number of rows to reduce the dataset to.
@@ -242,7 +332,7 @@ def calculate_fft_magnitudes(
     if window_size % 2 != 0:
         raise AttributeError("Please select an even window size!")
 
-    data = dataframe
+    data = dataframe.copy(deep=True)
 
     # get only data from fully filled windows
     n = data.shape[0] // window_size
@@ -259,23 +349,30 @@ def calculate_fft_magnitudes(
             # calculate the normalized magnitudes of the fourier coefficients
             fft_data = 2 * np.abs(np.fft.rfft(samples)) / window_size
             # only use the first window_size / 2 values
-            fft_magnitudes.append(fft_data[:-1])
+            fft_magnitudes.append(fft_data[1:])
         else:
             # calculate the magnitudes of the fourier coefficients
             fft_data = np.abs(np.fft.rfft(samples))
             # only use the first window_size / 2 values
-            fft_magnitudes.append(fft_data[:-1])
+            fft_magnitudes.append(fft_data[1:])
 
         # calculate the frequencies to the magnitudes
         time_delta = 1 / window_size
         fft_frequency = np.fft.rfftfreq(n=window_size, d=time_delta)
         # only use the first window_size / 2 values
-        fft_frequencies.append(fft_frequency[:-1])
+        fft_frequencies.append(fft_frequency[1:])
 
     fft_magnitudes = np.asarray(fft_magnitudes, dtype=float).flatten(order="C")
     fft_frequencies = np.asarray(fft_frequencies, dtype=float).flatten(order="C")
 
-    return fft_frequencies, fft_magnitudes
+    # create new dataframe with transformed data
+    fft_dataframe = DataFrame({"fft_frequency": fft_frequencies, "fft_magnitude": fft_magnitudes})
+    fft_dataframe.attrs = data.attrs
+
+    # add '_fft' to file name
+    fft_dataframe.attrs["path"] = fft_dataframe.attrs["path"].with_stem(fft_dataframe.attrs["path"].stem + f"_fft")
+    
+    return fft_dataframe
 
 
 def scale_robust(dataframe: DataFrame, column: str, window_size: int = 2048):

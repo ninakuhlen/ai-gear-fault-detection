@@ -83,7 +83,7 @@ def load_dataset(path: Path) -> DataFrame:
         yaml_data = safe_load(file.read_text())
         dataframe.attrs = yaml_data[path.stem]
         dataframe.attrs["path"] = path
-        dataframe["label"] = dataframe.attrs["unbalance"]
+        dataframe.attrs["index_type"] = "standard"
 
     except IndexError:
         raise IndexError("No meta_data.yaml file found in parent directory!")
