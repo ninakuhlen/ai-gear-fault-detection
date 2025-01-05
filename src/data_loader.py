@@ -1,6 +1,8 @@
 import kagglehub
+from copy import deepcopy
+from pandas import DataFrame, read_csv
 from pathlib import Path
-from src.preprocessing import Dataset
+from yaml import safe_load, safe_dump
 
 DATASET_ADDRESS: str = "jishnukoliyadan/vibration-analysis-on-rotating-shaft"
 
@@ -46,7 +48,7 @@ def fetch_kaggle_dataset(handle: str):
     print(f"{dataset_path} fully removed!")
 
 
-def load_datasets(parent_path: Path) -> tuple[list[Dataset], list[Dataset]]:
+def load_all_datasets(parent_path: Path) -> tuple[list[DataFrame], list[DataFrame]]:
     """
     Loads the dataset from the specified directory and splits them into development data and evaluation data according to the .csv file names.
 
@@ -59,26 +61,62 @@ def load_datasets(parent_path: Path) -> tuple[list[Dataset], list[Dataset]]:
     development_data = []
     evaluation_data = []
 
-    print("READING TRAINING DATA")
-    for file_path in parent_path.glob("*D.csv"):
-        development_data.append(Dataset(file_path))
-        print(f"{file_path.name} completed!")
+    print("READING DEVELOPMENT DATA")
+    for file_path in parent_path.glob("*D*.csv"):
+        development_data.append(load_dataset(file_path))
 
     print("READING EVALUATION DATA")
-    for file_path in parent_path.glob("*E.csv"):
-        evaluation_data.append(Dataset(file_path))
-        print(f"{file_path.name} completed!")
+    for file_path in parent_path.glob("*E*.csv"):
+        evaluation_data.append(load_dataset(file_path))
 
     print("READING COMPLETED")
 
     return development_data, evaluation_data
 
 
-# TODO function to store processed data
-def save_dataset(datasets: list[Dataset], uuid: str = None):
-    data_path = Path().cwd() / "data" / "processed"
+def load_dataset(path: Path) -> DataFrame:
+    dataframe = read_csv(path)
+    # dataframe.attrs["path"] = path
 
-    if uuid:
-        data_path = data_path / uuid
-    data_path.mkdir(parents=True, exist_ok=True)
-    pass
+    try:
+        file = list(path.parent.rglob("meta_data.yaml"))[0]
+        yaml_data = safe_load(file.read_text())
+        dataframe.attrs = yaml_data[path.stem]
+        dataframe.attrs["path"] = path
+        dataframe.attrs["index_type"] = "standard"
+        dataframe.attrs["sample_size"] = dataframe.shape[0]
+
+    except IndexError:
+        raise IndexError("No meta_data.yaml file found in parent directory!")
+
+    print(f"{path.name} successfully loaded.")
+    return dataframe
+
+
+def save_dataset(dataframe: DataFrame, uuid: str):
+    parent_path = Path().cwd() / "data" / "processed" / f"{uuid}"
+
+    parent_path.mkdir(mode=777, parents=True, exist_ok=True)
+    
+    csv_path = parent_path / dataframe.attrs["path"].name
+    dataframe.attrs["path"] = csv_path
+    dataframe.to_csv(csv_path, index=False)
+
+    yaml_path = parent_path / "meta_data.yaml"
+
+    yaml_data = deepcopy(dataframe.attrs)
+    yaml_data["path"] = str(yaml_data["path"])
+    yaml_data = {dataframe.attrs["path"].stem: yaml_data}
+
+    append_to_yaml(yaml_path, yaml_data)
+
+    print(f"{dataframe.attrs['path'].name} successfully saved.")
+
+
+def append_to_yaml(file: Path, data: dict):
+    if not file.exists():
+        file.write_text(safe_dump(data))
+    else:
+        yaml_data = safe_load(file.read_text())
+        yaml_data = yaml_data | data
+        file.write_text(safe_dump(yaml_data))
