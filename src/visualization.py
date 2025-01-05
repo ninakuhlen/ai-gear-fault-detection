@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from pandas import DataFrame
 from math import ceil
 import numpy as np
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 
 def plot_columns_as_subplots(data_frame: DataFrame, columns: list, dpi=100):
@@ -104,4 +106,28 @@ def plot_fft_spectrogram(data_frame: DataFrame, aspect: str=None, cmap='viridis'
     plt.ylabel('Rotation Speed [rpm]')
     plt.title('FFT of Vibration Data - Transformed Test')
 
+    plt.show()
+
+# WIP visualization and confusion matrix
+def plot_confusion_matrix(y_true, y_pred, class_names, figsize=(8, 6), cmap="viridis"):
+    """
+    Plots a heatmap for the confusion matrix.
+
+    Args:
+        y_true (array-like): True class labels.
+        y_pred (array-like): Predicted class labels.
+        class_names (list): List of class names.
+        figsize (tuple): Figure size. Defaults to (8, 6).
+        cmap (str): Colormap for the heatmap. Defaults to "viridis".
+    """
+
+    # Confusion Matrix berechnen
+    cm = confusion_matrix(y_true, y_pred)
+
+    # Heatmap erstellen
+    plt.figure(figsize=figsize)
+    sns.heatmap(cm, annot=True, fmt="d", cmap=cmap, xticklabels=class_names, yticklabels=class_names)
+    plt.title("Confusion Matrix Heatmap")
+    plt.xlabel("Predicted Class")
+    plt.ylabel("True Class")
     plt.show()
