@@ -52,6 +52,7 @@ def plot_columns_as_subplots(data_frame: DataFrame, columns: list, dpi=100):
 
     plt.show()
 
+
 def plot_fft_spectrogram(data_frame: DataFrame, aspect: str=None, cmap='viridis', figsize=(12, 6)):
     """
     Plots a pixel graphic (heatmap) of FFT data with frequency on the X-axis, RPM on the Y-axis, 
