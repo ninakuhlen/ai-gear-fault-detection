@@ -4,7 +4,7 @@ from pandas import DataFrame
 from math import ceil
 import numpy as np
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-
+from sklearn.preprocessing import LabelEncoder
 
 def plot_columns_as_subplots(data_frame: DataFrame, columns: list, dpi=100):
     """
@@ -140,7 +140,13 @@ def plot_confusion_matrix(true_labels, predicted_labels, class_names):
         predicted_labels (array-like): The predicted labels from the model.
         class_names (list): List of class names for the matrix.
     """
-    cm = confusion_matrix(true_labels, predicted_labels)
+
+    # encode string labels to integers
+    label_encoder = LabelEncoder()
+    true_labels_encoded = label_encoder.fit_transform(true_labels)
+    predicted_labels_encoded = label_encoder.transform(predicted_labels)
+
+    cm = confusion_matrix(true_labels_encoded, predicted_labels_encoded, labels=range(len(class_names)))
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
 
     plt.figure(figsize=(8, 8))
