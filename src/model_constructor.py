@@ -23,7 +23,8 @@ def construct_fft_net_model(
     number_of_hidden_layers: int, input_shape: tuple
 ) -> keras.Sequential:
     model = keras.Sequential()
-    model.add(layers.Dense(2048, input_shape=input_shape))
+    model.add(layers.InputLayer(input_shape=input_shape))
+    model.add(layers.Dense(2048))
 
     # add the number of hidden layers
     for _ in range(number_of_hidden_layers):

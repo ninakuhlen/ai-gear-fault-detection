@@ -58,25 +58,29 @@ def load_all_datasets(parent_path: Path) -> tuple[list[DataFrame], list[DataFram
     Returns:
         tuple[list[Dataset], list[Dataset]]: Two lists of Datasets. The first contains the development data and the second the evaluation data.
     """
+
     development_data = []
     evaluation_data = []
 
-    print("READING DEVELOPMENT DATA")
+    print("load_all_datasets():")
+
+    print("\tReading development data ...")
     for file_path in parent_path.glob("*D*.csv"):
         development_data.append(load_dataset(file_path))
+        print(f"\t\t{file_path.name} successfully loaded.")
 
-    print("READING EVALUATION DATA")
+    print("\tReading evaluation data ...")
     for file_path in parent_path.glob("*E*.csv"):
         evaluation_data.append(load_dataset(file_path))
+        print(f"\t\t{file_path.name} successfully loaded.")
 
-    print("READING COMPLETED")
+    print("\tReading completed.\n")
 
     return development_data, evaluation_data
 
 
 def load_dataset(path: Path) -> DataFrame:
     dataframe = read_csv(path)
-    # dataframe.attrs["path"] = path
 
     try:
         file = list(path.parent.rglob("meta_data.yaml"))[0]
@@ -89,7 +93,6 @@ def load_dataset(path: Path) -> DataFrame:
     except IndexError:
         raise IndexError("No meta_data.yaml file found in parent directory!")
 
-    print(f"{path.name} successfully loaded.")
     return dataframe
 
 
@@ -97,7 +100,7 @@ def save_dataset(dataframe: DataFrame, uuid: str):
     parent_path = Path().cwd() / "data" / "processed" / f"{uuid}"
 
     parent_path.mkdir(mode=777, parents=True, exist_ok=True)
-    
+
     csv_path = parent_path / dataframe.attrs["path"].name
     dataframe.attrs["path"] = csv_path
     dataframe.to_csv(csv_path, index=False)
