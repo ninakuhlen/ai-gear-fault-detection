@@ -143,13 +143,6 @@ def discard_data(dataframe: DataFrame, start: int|float|Timedelta = None, end: i
 
     return data
 
-# TODO 
-def fit_to_sample_rate(dataframe: DataFrame):
-    sample_rate = dataframe.attrs["sample_rate"]
-
-    n = dataframe.shape[0] // sample_rate
-
-
 
 def add_centrifugal_force(dataframe: DataFrame, copy: bool = False):
     if "Measured_RPM" not in dataframe.columns:
@@ -405,6 +398,8 @@ def calculate_fft_magnitudes(
 
     current_length = fft_dataframe.shape[0]
     fft_dataframe.attrs["sample_size"] = f"{current_length:_}"
+
+    fft_dataframe.attrs["sample_rate"] = window_size // 2
     
     return fft_dataframe
 
