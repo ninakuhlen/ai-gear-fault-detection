@@ -56,7 +56,11 @@ def plot_columns_as_subplots(data_frame: DataFrame, columns: list, dpi=100):
 
 
 def plot_fft_spectrogram(
-    data_frame: DataFrame, aspect: str = None, cmap="viridis", figsize=(12, 6)
+    data_frame: DataFrame,
+    column: str = "vibration_1_magnitude",
+    aspect: str = None,
+    cmap="viridis",
+    figsize=(12, 6),
 ):
     """
     Plots a pixel graphic (heatmap) of FFT data with frequency on the X-axis, RPM on the Y-axis,
@@ -77,7 +81,7 @@ def plot_fft_spectrogram(
 
     # Pivot-Tabelle erstellen
     pivot_data = data_frame.pivot_table(
-        values="fft_magnitude", index="rpm", columns="fft_frequency", fill_value=0
+        values=column, index="rpm", columns="fft_frequency", fill_value=0
     )
 
     # Konvertieren in Matrix
@@ -150,14 +154,9 @@ def plot_confusion_matrix(true_labels, predicted_labels, class_names):
         class_names (list): List of class names for the matrix.
     """
 
-    # encode string labels to integers
-    label_encoder = LabelEncoder()
-    true_labels_encoded = label_encoder.fit_transform(true_labels)
-    predicted_labels_encoded = label_encoder.transform(predicted_labels)
-
     cm = confusion_matrix(
-        true_labels_encoded, predicted_labels_encoded, labels=range(len(class_names))
-    )
+        true_labels, predicted_labels
+    )  # labels=range(len(class_names)))
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
 
     plt.figure(figsize=(8, 8))
