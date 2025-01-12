@@ -18,17 +18,17 @@ def apply_threshold(
 
     Args:
         dataframe(DataFrame):
-                The dataset to
+            The dataset to apply the thresholding to.
         threshold (any):
-                The threshold according to which the data is filtered.
+            The threshold according to which the data is filtered.
         column (str):
-                The column to which the threshold is applied.
+            The column to which the threshold is applied.
         mode (str, optional):
-                The comparison operator for thresholding. Defaults to "le".
+            The comparison operator for thresholding. Defaults to "le".
         copy (bool, optional):
-                If True returns a copy of the filtered DataFrame. Defaults to False.
+            If True returns a copy of the filtered DataFrame. Defaults to False.
         reset_index (bool, optional):
-                Whether the index is reset to the start value 0 or not. Defaults to False.
+            Whether the index is reset to the start value 0 or not. Defaults to False.
 
     Raises:
         AttributeError: Invalid thresholding mode selected.
@@ -83,18 +83,24 @@ def split_by_gradient_direction(
     Analyses the data of a specified pandas DataFrame column for gradient directions and splits the dataset accordingly.
 
     Args:
-        dataframe (DataFrame): _descript
-        column (str): _description_
-        periods (int, optional): _description_. Defaults to 1.
-        sign (int, optional): _description_. Defaults to -1.
-        min_length (int, optional): _description_. Defaults to 50_000.
-        reset_index (bool, optional): _description_. Defaults to False.
+        dataframe (DataFrame):
+            The DataFrame to split by gradient direction.
+        column (str):
+            The column to analyze for gradient direction.
+        periods (int, optional):
+            Periods to shift for calculating difference. Defaults to 1.
+        sign (int, optional):
+            The direction of the gradient: 1 means ascending and -1 descending. Defaults to -1.
+        min_length (int, optional):
+            A minimum size of dataframe subsets. Subsets below this length will be discarded. Defaults to 50_000.
+        reset_index (bool, optional):
+            Whether to reset the indices of the created subsets to start at 0. Defaults to False.
 
     Raises:
-        AttributeError: _description_
+        AttributeError: Invalid sign selected! Please specify 1 for raising and -1 for falling gradient.
 
     Returns:
-        list[DataFrame]: _description_
+        list[DataFrame]: The subsets generated.
     """
 
     if sign not in [1, -1]:
@@ -146,7 +152,29 @@ def discard_data(
     start: int | float | Timedelta = None,
     end: int | float | Timedelta = 50_000,
     reset_index: bool = False,
-):
+) -> DataFrame:
+    """
+    Discardes data from the given pandas DataFrame. The function limits 'start' and 'end'
+    interpret integer values as indices and float values as time values in a unit determined
+    by the DataFrame. The limits also accept pandas Timedelta.
+
+    Args:
+        dataframe (DataFrame):
+            The DataFrame to discard data from.
+        start (int | float | Timedelta, optional):
+            The lower limit of the range to be discarded. If 'None', this attribute will be set to the start of the DataFrame. Defaults to None.
+        end (int | float | Timedelta, optional):
+            The upper limit of the range to be discarded. If 'None', this attribute will be set to the end of the DataFrame. Defaults to 50_000.
+        reset_index (bool, optional):
+            Whether to reset the indices of resulting DataFrame to start at 0. Defaults to False.
+
+    Raises:
+        AttributeError: Discarding full dataframe! Please specify either a starting value or an ending value.
+        ValueError: Invalid index dtype! Only integers. floats and timedeltas are supported.
+
+    Returns:
+        DataFrame: A DataFrame containing the remaining values.
+    """
 
     data = dataframe.copy(deep=True)
 
@@ -195,7 +223,23 @@ def discard_data(
     return data
 
 
-def add_centrifugal_force(dataframe: DataFrame, copy: bool = False):
+def add_centrifugal_force(dataframe: DataFrame, copy: bool = False) -> DataFrame:
+    """
+    Adds a column containing the centrifugal force to a DataFrame.
+
+    Args:
+        dataframe (DataFrame):
+            The DataFrame to add the centrifugal force column to.
+        copy (bool, optional):
+            Whether to return a copy of the DataFrame. Defaults to False.
+
+    Raises:
+        AttributeError: DataFrame does not provide a 'Measured_RPM' column!
+
+    Returns:
+        DataFrame: A copy of the DataFrame, if 'copy' is True.
+    """
+
     if "Measured_RPM" not in dataframe.columns:
         raise AttributeError("DataFrame does not provide a 'Measured_RPM' column!")
 
@@ -216,8 +260,10 @@ def add_time(dataframe: DataFrame, unit: str, replace_index: bool = False):
     Adds a time to the dataset as a float in the specified unit as a new column.
 
     Args:
-        unit (str): The selected unit. Valid values are "min", "s", "ms" "us" and "ns".
-        replace_index (bool): Overwrites the index instead of adding a new column
+        unit (str):
+            The selected unit. Valid values are "min", "s", "ms" "us" and "ns".
+        replace_index (bool):
+            Whether to overwrite the index instead of adding a new column.
 
     Raises:
         AttributeError: Invalid unit selected.
@@ -263,7 +309,8 @@ def add_timedelta(dataframe: DataFrame, replace_index: bool = False):
     Adds a timestamp to the dataset in a new column.
 
     Args:
-        replace_index (bool): Overwrites the index instead of adding a new column.
+        replace_index (bool):
+            Whether to overwrite the index instead of adding a new column.
 
     Raises:
         IndexError: No meta.yaml file found.
@@ -302,7 +349,8 @@ def step_resample(dataframe: DataFrame, step_size: int):
     Reduces the dataset by selecting every nth row. Resets the index.
 
     Args:
-        step_size (int): The step size with which the dataset is reduced.
+        step_size (int):
+            The step size with which the dataset is reduced.
     """
 
     data = dataframe.copy(deep=True)
@@ -319,11 +367,14 @@ def random_resample(
     dataframe: DataFrame, sample_size: int | float, random_state: int = 0
 ):
     """
-    Reduces the dataset to a fixed number of randomly selected rows. Resets the index
+    Reduces the dataset to a fixed number of randomly selected rows. Resets the index.
 
     Args:
-        sample_size (int): Fixed number of rows to reduce the dataset to.
-        random_state (int): Seed for random number generator.
+        sample_size (int | float):
+            Fixed number of rows to reduce the dataset to or the percentage to reduce the datasets size to.
+
+        random_state (int):
+            Seed for random number generator.
     """
 
     data = dataframe.copy(deep=True)
@@ -347,7 +398,24 @@ def random_resample(
 
 def median(
     dataframe: DataFrame, column: str, window_size: int = 4096, stretch: bool = True
-):
+) -> np.ndarray:
+    """
+    Calculates the median values per window of the specified column of a given DataFrame.
+    Only considers completely filled windows. Remaining data will be ignored.
+
+    Args:
+        dataframe (DataFrame):
+            The DataFrame to calculate median values of.
+        column (str):
+            The column name.
+        window_size (int, optional):
+            The window size for median value calculation. Defaults to 4096.
+        stretch (bool, optional):
+            Whether to multiplicate every entry. The resulting arrays length will be a multiple of the window size. Defaults to True.
+
+    Returns:
+        np.ndarray: A numpy ndarray of median values.
+    """
 
     data = dataframe
     if window_size == 0 or window_size == None:
@@ -374,7 +442,24 @@ def median(
 
 def mean(
     dataframe: DataFrame, column: str, window_size: int = 4096, stretch: bool = True
-):
+) -> np.ndarray:
+    """
+    Calculates the mean values per window of the specified column of a given DataFrame.
+    Only considers completely filled windows. Remaining data will be ignored.
+
+    Args:
+        dataframe (DataFrame):
+            The DataFrame to calculate mean values of.
+        column (str):
+            The column name.
+        window_size (int, optional):
+            The window size for mean value calculation. Defaults to 4096.
+        stretch (bool, optional):
+            Whether to multiplicate every entry. The resulting arrays length will be a multiple of the window size. Defaults to True.
+
+    Returns:
+        np.ndarray: A numpy ndarray of mean values.
+    """
 
     data = dataframe
     if window_size == 0 or window_size == None:
@@ -403,7 +488,23 @@ def calculate_fft_magnitudes(
     columns: list[str],
     window_size: int = 4096,
     normalize: bool = True,
-):
+) -> DataFrame:
+    """
+    Fourier transforms a set of columns of a given pandas DataFrame.
+
+    Args:
+        dataframe (DataFrame): The DataFrame containing the required data.
+        columns (list[str]):
+            A list of columns.
+        window_size (int, optional):
+            The size of the window for wich the fourier coefficients are calculated. Defaults to 4096.
+        normalize (bool, optional):
+            Whether to normalize the fourier coefficients. Defaults to True.
+
+    Returns:
+        DataFrame: A pandas DataFrame with the fourier transformed data an their frequencies.
+    """
+
     for column in columns:
         assert column in dataframe.columns, "Invalid column selected!"
     assert window_size % 2 == 0, "Please select an even window size!"
@@ -470,7 +571,26 @@ def calculate_fft_magnitudes(
     return fft_dataframe
 
 
-def scale_robust(dataframe: DataFrame, column_name: str, window_size: int = 2048):
+def scale_robust(
+    dataframe: DataFrame, column_name: str, window_size: int = 2048
+) -> DataFrame:
+    """
+    Robust scales a column or a set of columns. The function slides a window over the data and scales each window individually.
+
+    Args:
+        dataframe (DataFrame):
+            The source DataFrame.
+        column_name (str):
+            The name of the column which should be scaled. This attribute accepts glob notation to specify multple columns.
+        window_size (int, optional):
+            The size of the window. Defaults to 2048.
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        DataFrame: _description_
+    """
     scaler = RobustScaler(
         with_centering=True,
         with_scaling=True,

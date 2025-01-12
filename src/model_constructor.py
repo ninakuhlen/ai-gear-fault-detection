@@ -2,9 +2,13 @@ import tensorflow as tf
 from tensorflow import keras
 from keras import layers, regularizers, callbacks
 import os
+import numpy as np
 
 
 def system_setup():
+    """
+    Displays the number of cpu and gpu cores and enables memory growth for the gpu.
+    """
 
     n_cpu = os.cpu_count()
     print(f"Number of CPU cores:\t\t{n_cpu}")
@@ -23,6 +27,26 @@ def construct_fft_net_model(
     dropout: float = 0.2,
     negative_slope: float = 0.3,
 ) -> keras.Sequential:
+    """
+    Constructor for the keras Sequential model. Depending on the input shape, the model contains
+    a backbone of convolutional layers followed by a set of fully connected hidden layers. A single
+    hidden layer consists of a dense layer, a LeakyReLU activation layer and a dropout layer. If 1d
+    training samples are given, no convolutions will be build in the model.
+
+    Args:
+        n_hidden_layers (int):
+            The number of fully connected hidden layers.
+        training_samples_dict (dict):
+            A dictionary with training samples and labels to match the model input and output to.
+        l2 (float, optional):
+            The factor of the l2 regularitzation penality. It is computed as: loss = l2 * reduce_sum(square(x)).
+            Defaults to 1e-3.
+        dropout (float, optional): The percentage of layer inputs to set to 0. Defaults to 0.2.
+        negative_slope (float, optional): The negative slope of the LeakyReLU activation function. Defaults to 0.3.
+
+    Returns:
+        keras.Sequential: A model of the described neural network.
+    """
 
     input_shape = training_samples_dict["samples"].shape[1:]
     output_shape = training_samples_dict["labels"].shape[1]
@@ -72,8 +96,25 @@ def construct_fft_net_model(
 
 
 def compile_model(
-    model: keras.Sequential, learning_rate: float, momentum: float, threshold: float
+    model: keras.Sequential,
+    learning_rate: float = 1e-4,
+    momentum: float = 0.9,
+    threshold: float = 0.95,
 ):
+    """
+    Compiles the given keras Sequential model.
+
+    Args:
+        model (keras.Sequential):
+            The model to compile.
+        learning_rate (float):
+            The learning rate used by the SGD optimizer.
+        momentum (float):
+            The momentum used by SGD to accelerate the gradient descent.
+        threshold (float):
+            The threshold of the precision and recall metrics.
+    """
+
     model.compile(
         optimizer=keras.optimizers.SGD(learning_rate=learning_rate, momentum=momentum),
         loss=keras.losses.CategoricalCrossentropy(),  # for non-binary classification
@@ -87,12 +128,32 @@ def compile_model(
 
 def train_model(
     model: keras.Sequential,
-    samples_dict,
+    samples_dict: dict,
     epochs: int,
     batch_size: int,
     validation_split: float = 0.1,
     use_early_stopping: bool = True,
-):
+) -> keras.History.history:
+    """
+    Trains the given keras Sequential model.
+
+    Args:
+        model (keras.Sequential):
+            The model to train.
+        samples_dict (dict):
+            The samples dictionary containing training data.
+        epochs (int):
+            The number of epochs for training.
+        batch_size (int):
+            The training batch size.
+        validation_split (float, optional):
+            The percentage of training samples to use as validation data. Defaults to 0.1.
+        use_early_stopping (bool, optional):
+            Whether to use an EarlyStopping callback function. Defaults to True.
+
+    Returns:
+        keras.History.history: A keras history object.
+    """
     callback_list = []
     if use_early_stopping:
         early_stopping = callbacks.EarlyStopping(
@@ -112,7 +173,20 @@ def train_model(
     )
 
 
-def evaluate(model: keras.Sequential, test_samples_dict: dict):
+def evaluate(model: keras.Sequential, test_samples_dict: dict) -> list[float]:
+    """
+    Evaluates the performance of a given keras Sequential model.
+
+    Args:
+        model (keras.Sequential):
+            The model to evaluate.
+        test_samples_dict (dict):
+            A sample dictionary of test data.
+
+    Returns:
+        list[float]: List of scalars for every metric used by the model.
+    """
+
     return model.evaluate(
         test_samples_dict["samples"],
         test_samples_dict["labels"],
@@ -121,13 +195,22 @@ def evaluate(model: keras.Sequential, test_samples_dict: dict):
     )
 
 
-def predict(model: keras.Sequential, test_samples_dict: dict):
+def predict(model: keras.Sequential, test_samples_dict: dict) -> list[np.ndarray]:
+    """
+    Generates predictions for the input samples.
+
+    Args:
+        model (keras.Sequential):
+            The model to use for prediction.
+        test_samples_dict (dict):
+            A sample dictionary of test data.
+
+    Returns:
+        list[np.ndarray]: _description_
+    """
     prediction = model.predict(test_samples_dict["samples"])
     true_labels = test_samples_dict["labels"].argmax(axis=1)
     predicted_labels = prediction.argmax(axis=1)
-
-    # true_labels = test_samples_dict["encoder"].inverse_transform(true_labels)
-    # predicted_labels = test_samples_dict["encoder"].inverse_transform(predicted_labels)
 
     print("\nMODEL PREDICTIONS\n")
     print(true_labels)

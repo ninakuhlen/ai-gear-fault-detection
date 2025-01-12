@@ -12,7 +12,8 @@ def fetch_kaggle_dataset(handle: str):
     Downloads the specified kaggle dataset and moves it to the project/data/raw directory.
 
     Args:
-        handle (str): String representation of the kaggle dataset to download.
+        handle (str):
+            String representation of the kaggle dataset to download.
     """
 
     # move data to project data directory
@@ -53,7 +54,8 @@ def load_all_datasets(parent_path: Path) -> tuple[list[DataFrame], list[DataFram
     Loads the dataset from the specified directory and splits them into development data and evaluation data according to the .csv file names.
 
     Args:
-        parent_path (Path): Path to the dataset directory.
+        parent_path (Path):
+            Path to the dataset directory.
 
     Returns:
         tuple[list[Dataset], list[Dataset]]: Two lists of Datasets. The first contains the development data and the second the evaluation data.
@@ -113,8 +115,10 @@ def save_dataset(dataframe: DataFrame, uuid: str):
     Saves a pandas DataFrame to a csv file and stores its DataFrame.attrs to a yaml file.
 
     Args:
-        dataframe (DataFrame): The DataFrame instance to be saved.
-        uuid (str): The foldername universally unique identifier to be used as directory name.
+        dataframe (DataFrame):
+            The DataFrame instance to be saved.
+        uuid (str):
+            The foldername universally unique identifier to be used as directory name.
     """
 
     parent_path = Path().cwd() / "data" / "processed" / f"{uuid}"
@@ -141,8 +145,10 @@ def append_to_yaml(file: Path, data: dict):
     Creates or adds to a yaml file.
 
     Args:
-        file (Path): Path to the yaml file.
-        data (dict): A dictionary with the data to be written to the yaml file.
+        file (Path):
+            Path to the yaml file.
+        data (dict):
+            A dictionary with the data to be written to the yaml file.
     """
 
     if not file.exists():
