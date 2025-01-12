@@ -126,8 +126,8 @@ def predict(model: keras.Sequential, test_samples_dict: dict):
     true_labels = test_samples_dict["labels"].argmax(axis=1)
     predicted_labels = prediction.argmax(axis=1)
 
-    true_labels = test_samples_dict["encoder"].inverse_transform(true_labels)
-    predicted_labels = test_samples_dict["encoder"].inverse_transform(predicted_labels)
+    # true_labels = test_samples_dict["encoder"].inverse_transform(true_labels)
+    # predicted_labels = test_samples_dict["encoder"].inverse_transform(predicted_labels)
 
     print("\nMODEL PREDICTIONS\n")
     print(true_labels)

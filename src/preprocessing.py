@@ -190,7 +190,7 @@ def discard_data(
     current_length = data.shape[0]
     data.attrs["sample_size"] = f"{current_length:_}"
 
-    print(f"{previous_length - current_length} rows discarded.")
+    print(f"\t{previous_length - current_length} rows discarded.")
 
     return data
 
