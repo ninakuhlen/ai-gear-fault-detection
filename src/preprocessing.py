@@ -11,11 +11,13 @@ def apply_threshold(
     mode: str = "le",
     copy: bool = False,
     reset_index: bool = False,
-):
+) -> DataFrame:
     """
     Filters the dataset by comparing column values against a threshold value.
 
     Args:
+        dataframe(DataFrame):
+                The dataset to
         threshold (any):
                 The threshold according to which the data is filtered.
         column (str):
@@ -29,7 +31,11 @@ def apply_threshold(
 
     Raises:
         AttributeError: Invalid thresholding mode selected.
+
+    Returns:
+        DataFrame: The dataset copy, if 'copy' is True.
     """
+
     if mode not in ["eq", "le", "ge", "lt", "gt"]:
         raise AttributeError("Invalid thresholding mode selected!")
 
@@ -37,7 +43,7 @@ def apply_threshold(
         data = dataframe.copy(deep=True)
     else:
         data = dataframe
-    
+
     previous_length = data.shape[0]
 
     if mode == "eq":
@@ -50,7 +56,7 @@ def apply_threshold(
         data.drop(data.index[data[column] < threshold], inplace=True)
     elif mode == "gt":
         data.drop(data.index[data[column] > threshold], inplace=True)
-    
+
     current_length = data.shape[0]
     data.attrs["sample_size"] = f"{current_length:_}"
 
@@ -62,10 +68,37 @@ def apply_threshold(
     if copy:
         return data
 
-def split_by_gradient_direction(dataframe: DataFrame, column: str, periods: int = 1, sign: int = -1, min_length: int = 50_000, reset_index: bool =False):
+
+def split_by_gradient_direction(
+    dataframe: DataFrame,
+    column: str,
+    periods: int = 1,
+    sign: int = -1,
+    min_length: int = 50_000,
+    reset_index: bool = False,
+) -> list[DataFrame]:
+    """
+    Analyses the data of a specified pandas DataFrame column for gradient directions and splits the dataset accordingly.
+
+    Args:
+        dataframe (DataFrame): _descript
+        column (str): _description_
+        periods (int, optional): _description_. Defaults to 1.
+        sign (int, optional): _description_. Defaults to -1.
+        min_length (int, optional): _description_. Defaults to 50_000.
+        reset_index (bool, optional): _description_. Defaults to False.
+
+    Raises:
+        AttributeError: _description_
+
+    Returns:
+        list[DataFrame]: _description_
+    """
 
     if sign not in [1, -1]:
-        raise AttributeError("Invalid sign selected! Please specify 1 for raising and -1 for falling gradient.")
+        raise AttributeError(
+            "Invalid sign selected! Please specify 1 for raising and -1 for falling gradient."
+        )
 
     data = dataframe[column].copy(deep=True)
 
@@ -86,9 +119,11 @@ def split_by_gradient_direction(dataframe: DataFrame, column: str, periods: int 
 
             # copy dataframe info to subset
             subset.attrs = dataframe.attrs
-            
+
             # add number to subset path stem
-            subset.attrs["path"] = subset.attrs["path"].with_stem(subset.attrs["path"].stem + f"_{subset_number}")
+            subset.attrs["path"] = subset.attrs["path"].with_stem(
+                subset.attrs["path"].stem + f"_{subset_number}"
+            )
 
             # match the sample size in subset info
             current_length = subset.shape[0]
@@ -98,19 +133,27 @@ def split_by_gradient_direction(dataframe: DataFrame, column: str, periods: int 
                 subset.reset_index(drop=True, inplace=True)
 
             dataframes.append(subset)
-            
+
         start = end
 
     return dataframes
 
-def discard_data(dataframe: DataFrame, start: int|float|Timedelta = None, end: int| float|Timedelta = 50_000, reset_index: bool = False):
+
+def discard_data(
+    dataframe: DataFrame,
+    start: int | float | Timedelta = None,
+    end: int | float | Timedelta = 50_000,
+    reset_index: bool = False,
+):
 
     data = dataframe.copy(deep=True)
 
     previous_length = data.shape[0]
 
     if start is None and end is None:
-        raise AttributeError("Discarding full dataframe! Please specify either a starting value or an ending value.")
+        raise AttributeError(
+            "Discarding full dataframe! Please specify either a starting value or an ending value."
+        )
     elif start is None:
         start = data.index.min()
     elif end is None:
@@ -125,10 +168,14 @@ def discard_data(dataframe: DataFrame, start: int|float|Timedelta = None, end: i
         print("Limits interpreted as integers.")
     elif is_timedelta64_ns_dtype(data.index):
         start, end = to_timedelta(start), to_timedelta(end)
-        print("Limits interpreted as time in ns and converted to pandas timedelta64[ns].")
+        print(
+            "Limits interpreted as time in ns and converted to pandas timedelta64[ns]."
+        )
     else:
-        raise ValueError("Invalid index dtype! Only integers. floats and timedeltas are supported.")
-    
+        raise ValueError(
+            "Invalid index dtype! Only integers. floats and timedeltas are supported."
+        )
+
     delete = (data.index >= start) & (data.index < end)
 
     data = data[~delete]
@@ -142,6 +189,13 @@ def discard_data(dataframe: DataFrame, start: int|float|Timedelta = None, end: i
     print(f"{previous_length - current_length} rows discarded.")
 
     return data
+
+
+# TODO
+def fit_to_sample_rate(dataframe: DataFrame):
+    sample_rate = dataframe.attrs["sample_rate"]
+
+    n = dataframe.shape[0] // sample_rate
 
 
 def add_centrifugal_force(dataframe: DataFrame, copy: bool = False):
@@ -173,22 +227,20 @@ def add_time(dataframe: DataFrame, unit: str, replace_index: bool = False):
         IndexError: No meta.yaml file found.
     """
 
-    time_map = {
-        "min": 60**(-1),
-        "s": 1e0,
-        "ms": 1e3,
-        "us": 1e6,
-        "ns": 1e9
-    }
+    time_map = {"min": 60 ** (-1), "s": 1e0, "ms": 1e3, "us": 1e6, "ns": 1e9}
 
     if unit not in time_map.keys():
-        raise AttributeError(f"Invalid unit selected! Please select between:\t{time_map.keys()}")
-    
+        raise AttributeError(
+            f"Invalid unit selected! Please select between:\t{time_map.keys()}"
+        )
+
     data = dataframe.copy(deep=True)
 
     index_type = data.attrs["index_type"].split("_")
-    current_type, current_unit = index_type if len(index_type) == 2 else [index_type[0], None]
-   
+    current_type, current_unit = (
+        index_type if len(index_type) == 2 else [index_type[0], None]
+    )
+
     match current_type:
         case "time":
             time = time_map[unit] * data.index / time_map[current_unit]
@@ -198,7 +250,7 @@ def add_time(dataframe: DataFrame, unit: str, replace_index: bool = False):
         case "timedelta":
             time = time_map[unit] * data.index.total_seconds()
         case _:
-            raise ValueError("No matching index type!") 
+            raise ValueError("No matching index type!")
 
     if replace_index:
         data.index = time
@@ -223,7 +275,9 @@ def add_timedelta(dataframe: DataFrame, replace_index: bool = False):
     data = dataframe.copy(deep=True)
 
     index_type = data.attrs["index_type"].split("_")
-    current_type, current_unit = index_type if len(index_type) == 2 else [index_type[0], None]
+    current_type, current_unit = (
+        index_type if len(index_type) == 2 else [index_type[0], None]
+    )
 
     match current_type:
         case "time":
@@ -235,7 +289,7 @@ def add_timedelta(dataframe: DataFrame, replace_index: bool = False):
             timedelta = data.index
             print("Index is TimeDelta already.")
         case _:
-            raise ValueError("No matching index type!") 
+            raise ValueError("No matching index type!")
 
     if replace_index:
         data.index = timedelta
@@ -257,7 +311,6 @@ def step_resample(dataframe: DataFrame, step_size: int):
     data = dataframe.copy(deep=True)
     data = data.iloc[0::step_size]
     data.reset_index(drop=True, inplace=True)
-
 
     current_length = data.shape[0]
     data.attrs["sample_size"] = f"{current_length:_}"
@@ -390,17 +443,21 @@ def calculate_fft_magnitudes(
     fft_frequencies = np.asarray(fft_frequencies, dtype=float).flatten(order="C")
 
     # create new dataframe with transformed data
-    fft_dataframe = DataFrame({"fft_frequency": fft_frequencies, "fft_magnitude": fft_magnitudes})
+    fft_dataframe = DataFrame(
+        {"fft_frequency": fft_frequencies, "fft_magnitude": fft_magnitudes}
+    )
+
     fft_dataframe.attrs = data.attrs
 
     # add '_fft' to file name
-    fft_dataframe.attrs["path"] = fft_dataframe.attrs["path"].with_stem(fft_dataframe.attrs["path"].stem + f"_fft")
+    fft_dataframe.attrs["path"] = fft_dataframe.attrs["path"].with_stem(
+        fft_dataframe.attrs["path"].stem + f"_fft"
+    )
 
     current_length = fft_dataframe.shape[0]
     fft_dataframe.attrs["sample_size"] = f"{current_length:_}"
-
     fft_dataframe.attrs["sample_rate"] = window_size // 2
-    
+
     return fft_dataframe
 
 

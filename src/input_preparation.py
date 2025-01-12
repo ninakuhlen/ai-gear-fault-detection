@@ -9,8 +9,10 @@ def compare_merge_attributes(attributes_a: dict, attributes_b: dict):
     # just copy attributes_b, if an empty dict attributes_a is given
     if not attributes_a:
         return attributes_b
-    
-    assert set(attributes_a.keys()) == set(attributes_b.keys()), "Old and new attribute dictionaries have incompatible keys!"
+
+    assert set(attributes_a.keys()) == set(
+        attributes_b.keys()
+    ), "Old and new attribute dictionaries have incompatible keys!"
 
     keys = attributes_b.keys()
     merged_attributes = {}
@@ -25,9 +27,13 @@ def compare_merge_attributes(attributes_a: dict, attributes_b: dict):
         else:
             # if values are different, create or append to a list
             if isinstance(value_a, list):
-                merged_attributes[key] = value_a + ([value_b] if value_b not in value_a else [])
+                merged_attributes[key] = value_a + (
+                    [value_b] if value_b not in value_a else []
+                )
             elif isinstance(value_b, list):
-                merged_attributes[key] = ([value_a] if value_a not in value_b else []) + value_b
+                merged_attributes[key] = (
+                    [value_a] if value_a not in value_b else []
+                ) + value_b
             else:
                 merged_attributes[key] = [value_a, value_b]
 
@@ -50,7 +56,7 @@ def concatenate_datasets(datasets: list[DataFrame], use_binary_labeling: bool = 
 
         dataset["label"] = dataset.attrs["unbalance"]
         datasets[index] = dataset
-    
+
     concatenated_datasets = concat(datasets, keys=keys)
     concatenated_datasets.attrs = attrs
 
@@ -61,16 +67,24 @@ def split_data(dataframe: DataFrame, data_columns: list[str], random_state: int 
 
     sample_rate = dataframe.attrs["sample_rate"]
 
+    # samples = []
+    # for column in data_columns:
+    #     feature_samples = dataframe[column].to_numpy()
+    #     feature_samples = np.reshape(feature_samples, (-1, sample_rate))
+    #     samples.append(feature_samples)
+
+    # samples = np.stack(samples, axis=2)
+
     samples = dataframe[data_columns].to_numpy()
     samples = np.reshape(samples, (-1, sample_rate, len(data_columns)))
 
     # TODO check position of len(data_columns)
 
     encoder = LabelEncoder()
-    
+
     labels = dataframe["label"].to_numpy()
     n_classes = len(np.unique(labels))
-    labels = np.reshape(labels, (-1, sample_rate))[:,0]
+    labels = np.reshape(labels, (-1, sample_rate))[:, 0]
     encoded_labels = encoder.fit_transform(labels)
     one_hot_encoded_labels = to_categorical(encoded_labels, n_classes)
 
@@ -79,14 +93,19 @@ def split_data(dataframe: DataFrame, data_columns: list[str], random_state: int 
     for index in range(n_classes):
         class_weights[index] = 1.0
 
-    # shuffle samples and pack in dictionary
-    shuffled_samples, shuffled_labels = shuffle(samples, one_hot_encoded_labels, random_state=random_state)
+    if random_state is not None:
+        # shuffle samples and pack in dictionary
+        samples, one_hot_encoded_labels = shuffle(
+            samples, one_hot_encoded_labels, random_state=random_state
+        )
 
-    sample_dict = {"samples": shuffled_samples.squeeze(),
-            "labels": shuffled_labels,
-            "encoder": encoder,
-            "class_weights": class_weights}
-    
+    sample_dict = {
+        "samples": samples.squeeze(),
+        "labels": one_hot_encoded_labels,
+        "encoder": encoder,
+        "class_weights": class_weights,
+    }
+
     return sample_dict
 
 
@@ -102,6 +121,3 @@ def check_data(sample_dict: dict):
 
     for entry in zip(unique_labels, class_counts):
         print(f"\tClass '{entry[0]}':\t{entry[1]} samples")
-
-
-

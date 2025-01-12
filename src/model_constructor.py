@@ -20,18 +20,51 @@ def system_setup():
 
 
 def construct_fft_net_model(
-    n_hidden_layers: int, training_samples_dict: dict, l2: float = 1e-3, dropout: float = 0.2, negative_slope: float = 0.3
+    n_hidden_layers: int,
+    training_samples_dict: dict,
+    l2: float = 1e-3,
+    dropout: float = 0.2,
+    negative_slope: float = 0.3,
 ) -> keras.Sequential:
-    
+
     input_shape = training_samples_dict["samples"].shape[1:]
     output_shape = training_samples_dict["labels"].shape[1]
 
     model = keras.Sequential()
-    model.add(layers.Dense(2048, input_shape=input_shape))
+    model.add(layers.Input(input_shape))
+
+    if len(input_shape) == 1:
+        model.add(layers.Dense(2048))
+        dense_units = 1024
+    else:
+        model.add(
+            layers.Conv1D(
+                filters=64,
+                kernel_size=3,
+                activation="relu",
+                padding="same",
+                kernel_regularizer=regularizers.L2(l2),
+            )
+        )
+        model.add(layers.MaxPool1D(pool_size=2, strides=2, padding="valid"))
+
+        model.add(
+            layers.Conv1D(
+                filters=128,
+                kernel_size=3,
+                activation="relu",
+                padding="same",
+                kernel_regularizer=regularizers.L2(l2),
+            )
+        )
+        dense_units = 128
+        model.add(layers.GlobalMaxPooling1D())
 
     # add the number of hidden layers
     for _ in range(n_hidden_layers):
-        model.add(layers.Dense(units = 1024, kernel_regularizer=regularizers.L2(l2)))
+        model.add(
+            layers.Dense(units=dense_units, kernel_regularizer=regularizers.L2(l2))
+        )
         model.add(layers.LeakyReLU(negative_slope=negative_slope))
         model.add(layers.Dropout(dropout))
 
@@ -41,37 +74,57 @@ def construct_fft_net_model(
     return model
 
 
-def compile_model(model: keras.Sequential, learning_rate: float, momentum: float, threshold: float):
+def compile_model(
+    model: keras.Sequential, learning_rate: float, momentum: float, threshold: float
+):
     model.compile(
-    optimizer=keras.optimizers.SGD(learning_rate=learning_rate, momentum=momentum),
-    loss = keras.losses.CategoricalCrossentropy(), # for non-binary classification
-    metrics=[
-        keras.metrics.CategoricalAccuracy(name="accuracy"),
-        keras.metrics.Precision(name="precision", thresholds=threshold),
-        keras.metrics.Recall(name="recall", thresholds=threshold),
-    ]
+        optimizer=keras.optimizers.SGD(learning_rate=learning_rate, momentum=momentum),
+        loss=keras.losses.CategoricalCrossentropy(),  # for non-binary classification
+        metrics=[
+            keras.metrics.CategoricalAccuracy(name="accuracy"),
+            keras.metrics.Precision(name="precision", thresholds=threshold),
+            keras.metrics.Recall(name="recall", thresholds=threshold),
+        ],
     )
 
-def train_model(model: keras.Sequential, samples_dict, epochs: int, batch_size: int, validation_split: float = 0.1, use_early_stopping: bool = True):
+
+def train_model(
+    model: keras.Sequential,
+    samples_dict,
+    epochs: int,
+    batch_size: int,
+    validation_split: float = 0.1,
+    use_early_stopping: bool = True,
+):
     callback_list = []
     if use_early_stopping:
-        early_stopping = callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+        early_stopping = callbacks.EarlyStopping(
+            monitor="val_loss", patience=10, restore_best_weights=True
+        )
         callback_list.append(early_stopping)
-    
-    return model.fit(x=samples_dict["samples"],
-    y=samples_dict["labels"],
-    epochs=epochs,
-    batch_size=batch_size,
-    validation_split=validation_split,
-    shuffle=True,
-    callbacks=callback_list, 
-    class_weight=samples_dict["class_weights"])
+
+    return model.fit(
+        x=samples_dict["samples"],
+        y=samples_dict["labels"],
+        epochs=epochs,
+        batch_size=batch_size,
+        validation_split=validation_split,
+        shuffle=True,
+        callbacks=callback_list,
+        class_weight=samples_dict["class_weights"],
+    )
 
 
 def evaluate(model: keras.Sequential, test_samples_dict: dict):
-    return model.evaluate(test_samples_dict["samples"], test_samples_dict["labels"], verbose = 1, return_dict=True)
+    return model.evaluate(
+        test_samples_dict["samples"],
+        test_samples_dict["labels"],
+        verbose=1,
+        return_dict=True,
+    )
 
-def predict(model: keras.Sequential, test_samples_dict:dict):
+
+def predict(model: keras.Sequential, test_samples_dict: dict):
     prediction = model.predict(test_samples_dict["samples"])
     true_labels = test_samples_dict["labels"].argmax(axis=1)
     predicted_labels = prediction.argmax(axis=1)

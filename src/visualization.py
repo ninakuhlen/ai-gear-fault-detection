@@ -1,10 +1,11 @@
-#from matplotlib.pyplot import subplots, show
+# from matplotlib.pyplot import subplots, show
 import matplotlib.pyplot as plt
 from pandas import DataFrame
 from math import ceil
 import numpy as np
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from sklearn.preprocessing import LabelEncoder
+
 
 def plot_columns_as_subplots(data_frame: DataFrame, columns: list, dpi=100):
     """
@@ -54,9 +55,11 @@ def plot_columns_as_subplots(data_frame: DataFrame, columns: list, dpi=100):
     plt.show()
 
 
-def plot_fft_spectrogram(data_frame: DataFrame, aspect: str=None, cmap='viridis', figsize=(12, 6)):
+def plot_fft_spectrogram(
+    data_frame: DataFrame, aspect: str = None, cmap="viridis", figsize=(12, 6)
+):
     """
-    Plots a pixel graphic (heatmap) of FFT data with frequency on the X-axis, RPM on the Y-axis, 
+    Plots a pixel graphic (heatmap) of FFT data with frequency on the X-axis, RPM on the Y-axis,
     and magnitude as color intensity.
 
     Args:
@@ -70,14 +73,11 @@ def plot_fft_spectrogram(data_frame: DataFrame, aspect: str=None, cmap='viridis'
     """
 
     if aspect is None:
-        aspect='auto'
+        aspect = "auto"
 
     # Pivot-Tabelle erstellen
     pivot_data = data_frame.pivot_table(
-        values='fft_magnitude', 
-        index='rpm', 
-        columns='fft_frequency', 
-        fill_value=0
+        values="fft_magnitude", index="rpm", columns="fft_frequency", fill_value=0
     )
 
     # Konvertieren in Matrix
@@ -86,7 +86,9 @@ def plot_fft_spectrogram(data_frame: DataFrame, aspect: str=None, cmap='viridis'
     amplitude_matrix = pivot_data.values
 
     # Logarithmische Skalierung der Amplituden (optional) für bessere Sichtbarkeit
-    amplitude_matrix = np.log1p(amplitude_matrix)  # Logarithmische Transformation: log(1 + x)
+    amplitude_matrix = np.log1p(
+        amplitude_matrix
+    )  # Logarithmische Transformation: log(1 + x)
 
     # Grafik erstellen
     plt.figure(figsize=figsize)  # Breitere Darstellung
@@ -94,19 +96,25 @@ def plot_fft_spectrogram(data_frame: DataFrame, aspect: str=None, cmap='viridis'
         amplitude_matrix,
         aspect=aspect,  # Automatische Anpassung der Darstellung
         cmap=cmap,  # Farbskala # 'inferno'
-        origin='lower',  # Startet bei der unteren linken Ecke
-        extent=[freq_values.min(), freq_values.max(), rpm_values.min(), rpm_values.max()],
+        origin="lower",  # Startet bei der unteren linken Ecke
+        extent=[
+            freq_values.min(),
+            freq_values.max(),
+            rpm_values.min(),
+            rpm_values.max(),
+        ],
         vmin=np.percentile(amplitude_matrix, 5),
-        vmax=np.percentile(amplitude_matrix, 95)
+        vmax=np.percentile(amplitude_matrix, 95),
     )
 
     # Achsentitel und Farblegende hinzufügen
-    plt.colorbar(label='Log-scaled FFT Magnitude')
-    plt.xlabel('Frequency [Hz]')
-    plt.ylabel('Rotation Speed [rpm]')
-    plt.title('FFT of Vibration Data - Transformed Test')
+    plt.colorbar(label="Log-scaled FFT Magnitude")
+    plt.xlabel("Frequency [Hz]")
+    plt.ylabel("Rotation Speed [rpm]")
+    plt.title("FFT of Vibration Data - Transformed Test")
 
     plt.show()
+
 
 def plot_training_history(history, metrics=["loss", "accuracy", "precision", "recall"]):
     """
@@ -117,19 +125,20 @@ def plot_training_history(history, metrics=["loss", "accuracy", "precision", "re
         metrics (list): List of the metrics that should be plotted. Default: loss, accuracy, precision, recall.
     """
     plt.figure(figsize=(12, 8))
-    
+
     for metric in metrics:
         if metric in history.history:
             plt.plot(history.history[metric], label=f"Train {metric}")
             if f"val_{metric}" in history.history:
                 plt.plot(history.history[f"val_{metric}"], label=f"Validation {metric}")
-    
+
     plt.xlabel("Epochs")
     plt.ylabel("Value")
     plt.title("Training and Validation")
     plt.legend()
     plt.grid(True)
     plt.show()
+
 
 def plot_confusion_matrix(true_labels, predicted_labels, class_names):
     """
@@ -146,10 +155,12 @@ def plot_confusion_matrix(true_labels, predicted_labels, class_names):
     true_labels_encoded = label_encoder.fit_transform(true_labels)
     predicted_labels_encoded = label_encoder.transform(predicted_labels)
 
-    cm = confusion_matrix(true_labels_encoded, predicted_labels_encoded, labels=range(len(class_names)))
+    cm = confusion_matrix(
+        true_labels_encoded, predicted_labels_encoded, labels=range(len(class_names))
+    )
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
 
     plt.figure(figsize=(8, 8))
-    disp.plot(cmap="Blues", values_format='d')
+    disp.plot(cmap="Blues", values_format="d")
     plt.title("Confusion Matrix")
     plt.show()
