@@ -75,6 +75,19 @@ def load_all_datasets(parent_path: Path) -> tuple[list[DataFrame], list[DataFram
 
 
 def load_dataset(path: Path) -> DataFrame:
+    """
+    Loads a single pandas DataFrame from a given path.
+
+    Args:
+        path (Path): Path to the csv file.
+
+    Raises:
+        IndexError: No meta_data.yaml file found in parent directory!
+
+    Returns:
+        DataFrame: Pandas DataFrame created from the csv file.
+    """
+
     dataframe = read_csv(path)
     # dataframe.attrs["path"] = path
 
@@ -94,6 +107,14 @@ def load_dataset(path: Path) -> DataFrame:
 
 
 def save_dataset(dataframe: DataFrame, uuid: str):
+    """
+    Saves a pandas DataFrame to a csv file and stores its DataFrame.attrs to a yaml file.
+
+    Args:
+        dataframe (DataFrame): The DataFrame instance to be saved.
+        uuid (str): The foldername universally unique identifier to be used as directory name.
+    """
+
     parent_path = Path().cwd() / "data" / "processed" / f"{uuid}"
 
     parent_path.mkdir(mode=777, parents=True, exist_ok=True)
@@ -114,6 +135,14 @@ def save_dataset(dataframe: DataFrame, uuid: str):
 
 
 def append_to_yaml(file: Path, data: dict):
+    """
+    Creates or adds to a yaml file.
+
+    Args:
+        file (Path): Path to the yaml file.
+        data (dict): A dictionary with the data to be written to the yaml file.
+    """
+
     if not file.exists():
         file.write_text(safe_dump(data))
     else:
