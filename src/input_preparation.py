@@ -67,18 +67,8 @@ def split_data(dataframe: DataFrame, data_columns: list[str], random_state: int 
 
     sample_rate = dataframe.attrs["sample_rate"]
 
-    # samples = []
-    # for column in data_columns:
-    #     feature_samples = dataframe[column].to_numpy()
-    #     feature_samples = np.reshape(feature_samples, (-1, sample_rate))
-    #     samples.append(feature_samples)
-
-    # samples = np.stack(samples, axis=2)
-
     samples = dataframe[data_columns].to_numpy()
     samples = np.reshape(samples, (-1, sample_rate, len(data_columns)))
-
-    # TODO check position of len(data_columns)
 
     encoder = LabelEncoder()
 
@@ -117,7 +107,7 @@ def check_data(sample_dict: dict):
     unique_labels = np.unique(labels)
     class_counts = np.sum(one_hot_encoded_labels, axis=0)
 
-    print("\nCHECK SAMPLE DISTRIBUTION\n")
+    print("\ncheck_data():\n")
 
     for entry in zip(unique_labels, class_counts):
         print(f"\tClass '{entry[0]}':\t{entry[1]} samples")
