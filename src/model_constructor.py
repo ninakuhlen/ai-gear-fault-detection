@@ -3,9 +3,6 @@ from tensorflow import keras
 from keras import layers, regularizers, callbacks
 import os
 
-ACTIVATION_FUNCTION: str = "relu"
-N_HIDDEN: int = 4
-
 
 def system_setup():
 

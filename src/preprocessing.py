@@ -2,6 +2,7 @@ import numpy as np
 from pandas import DataFrame, to_timedelta, Timedelta
 from pandas.api.types import is_integer_dtype, is_float_dtype, is_timedelta64_ns_dtype
 from sklearn.preprocessing import RobustScaler
+from fnmatch import fnmatch
 
 
 def apply_threshold(
@@ -60,7 +61,8 @@ def apply_threshold(
     current_length = data.shape[0]
     data.attrs["sample_size"] = f"{current_length:_}"
 
-    print(f"{previous_length - current_length} rows discarded.")
+    print("apply_threshold():")
+    print(f"\t{previous_length - current_length} rows discarded.\n")
 
     if reset_index:
         data.reset_index(drop=True, inplace=True)
@@ -159,17 +161,19 @@ def discard_data(
     elif end is None:
         end = data.index.max()
 
+    print("discard_data():")
+
     if is_float_dtype(data.index):
         _, current_unit = data.attrs["index_type"].split("_")
         start, end = float(start), float(end)
-        print(f"Limits interpreted as time in{current_unit}")
+        print(f"\tLimits interpreted as time in {current_unit}.")
     elif is_integer_dtype(data.index):
         start, end = int(start), int(end)
-        print("Limits interpreted as integers.")
+        print("\tLimits interpreted as indices.")
     elif is_timedelta64_ns_dtype(data.index):
         start, end = to_timedelta(start), to_timedelta(end)
         print(
-            "Limits interpreted as time in ns and converted to pandas timedelta64[ns]."
+            "\tLimits interpreted as time in ns and converted to pandas timedelta64[ns]."
         )
     else:
         raise ValueError(
@@ -189,13 +193,6 @@ def discard_data(
     print(f"{previous_length - current_length} rows discarded.")
 
     return data
-
-
-# TODO
-def fit_to_sample_rate(dataframe: DataFrame):
-    sample_rate = dataframe.attrs["sample_rate"]
-
-    n = dataframe.shape[0] // sample_rate
 
 
 def add_centrifugal_force(dataframe: DataFrame, copy: bool = False):
@@ -402,58 +399,70 @@ def mean(
 
 
 def calculate_fft_magnitudes(
-    dataframe: DataFrame, column: str, window_size: int = 4096, normalize: bool = True
+    dataframe: DataFrame,
+    columns: list[str],
+    window_size: int = 4096,
+    normalize: bool = True,
 ):
-    if column not in dataframe.columns:
-        raise AttributeError("Invalid column selected!")
-    if window_size % 2 != 0:
-        raise AttributeError("Please select an even window size!")
+    for column in columns:
+        assert column in dataframe.columns, "Invalid column selected!"
+    assert window_size % 2 == 0, "Please select an even window size!"
 
     data = dataframe.copy(deep=True)
 
     # get only data from fully filled windows
     n = data.shape[0] // window_size
 
-    fft_magnitudes = []
-    fft_frequencies = []
-
-    for i in range(n):
-        start = i * window_size
-        end = (i + 1) * window_size
-        samples = data[column].iloc[start:end]
-
-        if normalize:
-            # calculate the normalized magnitudes of the fourier coefficients
-            fft_data = 2 * np.abs(np.fft.rfft(samples)) / window_size
-            # only use the first window_size / 2 values
-            fft_magnitudes.append(fft_data[1:])
-        else:
-            # calculate the magnitudes of the fourier coefficients
-            fft_data = np.abs(np.fft.rfft(samples))
-            # only use the first window_size / 2 values
-            fft_magnitudes.append(fft_data[1:])
-
-        # calculate the frequencies to the magnitudes
-        time_delta = 1 / window_size
-        fft_frequency = np.fft.rfftfreq(n=window_size, d=time_delta)
-        # only use the first window_size / 2 values
-        fft_frequencies.append(fft_frequency[1:])
-
-    fft_magnitudes = np.asarray(fft_magnitudes, dtype=float).flatten(order="C")
-    fft_frequencies = np.asarray(fft_frequencies, dtype=float).flatten(order="C")
-
-    # create new dataframe with transformed data
+    # initialize pandas dataframe with its first column 'fft_frequency'
     fft_dataframe = DataFrame(
-        {"fft_frequency": fft_frequencies, "fft_magnitude": fft_magnitudes}
+        np.nan, index=range(n * window_size // 2), columns=["fft_frequency"]
     )
 
-    fft_dataframe.attrs = data.attrs
+    # calculate the frequencies
+    fft_frequencies = []
+    time_delta = 1 / window_size
 
-    # add '_fft' to file name
+    # only use the frequencies greater than 0
+    window_fft_frequency = np.fft.rfftfreq(n=window_size, d=time_delta)[1:]
+
+    for _ in range(n):
+        fft_frequencies.append(window_fft_frequency)
+
+    fft_dataframe["fft_frequency"] = np.asarray(fft_frequencies, dtype=float).flatten(
+        order="C"
+    )
+
+    # calculate fft for each selected column
+    for column in columns:
+
+        fft_magnitudes = []
+
+        for i in range(n):
+            start = i * window_size
+            end = (i + 1) * window_size
+            samples = data[column].iloc[start:end]
+
+            if normalize:
+                # calculate the normalized magnitudes of the fourier coefficients
+                fft_data = 2 * np.abs(np.fft.rfft(samples)) / window_size
+                # only use the first window_size / 2 values
+                fft_magnitudes.append(fft_data[1:])
+            else:
+                # calculate the magnitudes of the fourier coefficients
+                fft_data = np.abs(np.fft.rfft(samples))
+                # only use the first window_size / 2 values
+                fft_magnitudes.append(fft_data[1:])
+
+        # add new columns with transformed data
+        fft_dataframe[f"{column}_magnitude".lower()] = np.asarray(
+            fft_magnitudes, dtype=float
+        ).flatten(order="C")
+
+    # copy and edit old dataframe attributes
+    fft_dataframe.attrs = data.attrs
     fft_dataframe.attrs["path"] = fft_dataframe.attrs["path"].with_stem(
         fft_dataframe.attrs["path"].stem + f"_fft"
     )
-
     current_length = fft_dataframe.shape[0]
     fft_dataframe.attrs["sample_size"] = f"{current_length:_}"
     fft_dataframe.attrs["sample_rate"] = window_size // 2
@@ -461,7 +470,7 @@ def calculate_fft_magnitudes(
     return fft_dataframe
 
 
-def scale_robust(dataframe: DataFrame, column: str, window_size: int = 2048):
+def scale_robust(dataframe: DataFrame, column_name: str, window_size: int = 2048):
     scaler = RobustScaler(
         with_centering=True,
         with_scaling=True,
@@ -470,34 +479,36 @@ def scale_robust(dataframe: DataFrame, column: str, window_size: int = 2048):
 
     data = dataframe.copy(deep=True)
 
-    column_data = data[column]
+    for column in data.columns:
+        if fnmatch(column, column_name):
+            column_data = data[column]
 
-    # check, if all column elements are scalars
-    elements_are_scalars = all(
-        column_data.apply(lambda x: np.isscalar(x) and np.isreal(x))
-    )
-
-    if elements_are_scalars:
-
-        # get only data from fully filled windows
-        n = data.shape[0] // window_size
-
-        scaled_data = []
-
-        for i in range(n):
-
-            start = i * window_size
-            end = (i + 1) * window_size
-            sample = column_data.iloc[start:end]
-
-            scaled_sample = scaler.fit_transform(sample.values.reshape(-1, 1)).flatten(
-                order="C"
+            # check, if all column elements are scalars
+            elements_are_scalars = all(
+                column_data.apply(lambda x: np.isscalar(x) and np.isreal(x))
             )
-            scaled_data.append(scaled_sample)
 
-    else:
-        raise ValueError("The column must contain only scalars!")
+            if elements_are_scalars:
 
-    data[column] = np.asarray(scaled_data).flatten(order="C")
+                # get only data from fully filled windows
+                n = data.shape[0] // window_size
+
+                scaled_data = []
+
+                for i in range(n):
+
+                    start = i * window_size
+                    end = (i + 1) * window_size
+                    sample = column_data.iloc[start:end]
+
+                    scaled_sample = scaler.fit_transform(
+                        sample.values.reshape(-1, 1)
+                    ).flatten(order="C")
+                    scaled_data.append(scaled_sample)
+
+            else:
+                raise ValueError("The column must contain only scalars!")
+
+            data[column] = np.asarray(scaled_data).flatten(order="C")
 
     return data
