@@ -1,7 +1,8 @@
 import numpy as np
-from pandas import DataFrame, to_timedelta, Timedelta
+from pandas import DataFrame, Series, to_timedelta, Timedelta
 from pandas.api.types import is_integer_dtype, is_float_dtype, is_timedelta64_ns_dtype
 from sklearn.preprocessing import RobustScaler
+from sklearn.linear_model import LinearRegression
 from fnmatch import fnmatch
 
 
@@ -485,7 +486,7 @@ def mean(
 
 def calculate_fft_magnitudes(
     dataframe: DataFrame,
-    columns: list[str],
+    column_name: str | list[str],
     window_size: int = 4096,
     normalize: bool = True,
 ) -> DataFrame:
@@ -494,8 +495,8 @@ def calculate_fft_magnitudes(
 
     Args:
         dataframe (DataFrame): The DataFrame containing the required data.
-        columns (list[str]):
-            A list of columns.
+        columns (str | list[str]):
+            A list of columns or a single column name. Allows for glob notation.
         window_size (int, optional):
             The size of the window for wich the fourier coefficients are calculated. Defaults to 4096.
         normalize (bool, optional):
@@ -505,9 +506,26 @@ def calculate_fft_magnitudes(
         DataFrame: A pandas DataFrame with the fourier transformed data an their frequencies.
     """
 
-    for column in columns:
-        assert column in dataframe.columns, "Invalid column selected!"
-    assert window_size % 2 == 0, "Please select an even window size!"
+    columns = []
+
+    if isinstance(column_name, str):
+        # search for matching columns in dataframe columns
+        for column in dataframe.columns:
+            if fnmatch(column, column_name):
+                columns.append(column)
+        if not columns:
+            raise ValueError("No matching columns found!")
+
+    elif isinstance(column_name, list):
+        # check existance of columns in dataframe columns
+        for column in column_name:
+            if column not in dataframe.columns:
+                raise ValueError(f"Invalid column '{column}' selected!")
+
+        columns = column_name
+
+    if window_size % 2 != 0:
+        raise ValueError("Odd window size! Please select an even window size!")
 
     data = dataframe.copy(deep=True)
 
@@ -572,7 +590,7 @@ def calculate_fft_magnitudes(
 
 
 def scale_robust(
-    dataframe: DataFrame, column_name: str, window_size: int = 2048
+    dataframe: DataFrame, column_name: str | list[str], window_size: int = 2048
 ) -> DataFrame:
     """
     Robust scales a column or a set of columns. The function slides a window over the data and scales each window individually.
@@ -586,11 +604,35 @@ def scale_robust(
             The size of the window. Defaults to 2048.
 
     Raises:
-        ValueError: _description_
+        ValueError: No matching columns found!
+        ValueError: Invalid column selected!
+        ValueError: Odd window size! Please select an even window size!
 
     Returns:
-        DataFrame: _description_
+        DataFrame: A pandas DataFrame with robust scaled column data.
     """
+
+    columns = []
+
+    if isinstance(column_name, str):
+        # search for matching columns in dataframe columns
+        for column in dataframe.columns:
+            if fnmatch(column, column_name):
+                columns.append(column)
+        if not columns:
+            raise ValueError("No matching columns found!")
+
+    elif isinstance(column_name, list):
+        # check existance of columns in dataframe columns
+        for column in column_name:
+            if column not in dataframe.columns:
+                raise ValueError(f"Invalid column '{column}' selected!")
+
+        columns = column_name
+
+    if window_size % 2 != 0:
+        raise ValueError("Odd window size! Please select an even window size!")
+
     scaler = RobustScaler(
         with_centering=True,
         with_scaling=True,
@@ -599,36 +641,182 @@ def scale_robust(
 
     data = dataframe.copy(deep=True)
 
-    for column in data.columns:
-        if fnmatch(column, column_name):
-            column_data = data[column]
+    for column in columns:
+        column_data = data[column]
 
-            # check, if all column elements are scalars
-            elements_are_scalars = all(
-                column_data.apply(lambda x: np.isscalar(x) and np.isreal(x))
+        # check, if all column elements are scalars
+        elements_are_scalars = all(
+            column_data.apply(lambda x: np.isscalar(x) and np.isreal(x))
+        )
+
+        if not elements_are_scalars:
+            raise ValueError("The column must contain only scalars!")
+
+        # get only data from fully filled windows
+        n = data.shape[0] // window_size
+
+        scaled_data = []
+
+        for i in range(n):
+
+            start = i * window_size
+            end = (i + 1) * window_size
+            sample = column_data.iloc[start:end]
+
+            scaled_sample = scaler.fit_transform(sample.values.reshape(-1, 1)).flatten(
+                order="C"
             )
+            scaled_data.append(scaled_sample)
 
-            if elements_are_scalars:
+        data[column] = np.asarray(scaled_data).flatten(order="C")
 
-                # get only data from fully filled windows
-                n = data.shape[0] // window_size
+    return data
 
-                scaled_data = []
 
-                for i in range(n):
+def clean_outliers(
+    dataframe: DataFrame,
+    column_name: str | list[str],
+    window_size: int = None,
+    std_multiplier: float = 2,
+    discard: bool = False,
+) -> DataFrame:
+    """
+    Perform linear regression using the DataFrame index as the independent variable and a specified column as the dependent variable.
+    This may be performed fully or per window for each data column. Outliers are corrected to values of the regression line by default.
 
-                    start = i * window_size
-                    end = (i + 1) * window_size
-                    sample = column_data.iloc[start:end]
+    Args:
+        dataframe (DataFrame):
+            The input DataFrame.
+        column_name (str | list[str]):
+            The name(s) of the column(s) to be used as the dependent variable.
+        window_size (int, optional):
+            The size of the window. If 'None' the full columns are used for a single regression. Defaults to None.
+        std_multiplier (float, optional):
+            The number of standard deviations above and below which deviations are considered outliers. Defaults to 2.
+        discard (bool, optional):
+            Whether or not the outliers and the corresponding data points of other columns should be discarded. Defaults to False.
 
-                    scaled_sample = scaler.fit_transform(
-                        sample.values.reshape(-1, 1)
-                    ).flatten(order="C")
-                    scaled_data.append(scaled_sample)
+    Raises:
+        ValueError: No matching columns found!
+        ValueError: Invalid column selected!
+        ValueError: Odd window size! Please select an even window size!
 
-            else:
-                raise ValueError("The column must contain only scalars!")
+    Returns:
+        DataFrame: A DataFrame without outliers.
+    """
 
-            data[column] = np.asarray(scaled_data).flatten(order="C")
+    columns = []
+
+    if isinstance(column_name, str):
+        # search for matching columns in dataframe columns
+        for column in dataframe.columns:
+            if fnmatch(column, column_name):
+                columns.append(column)
+        if not columns:
+            raise ValueError("No matching columns found!")
+
+    elif isinstance(column_name, list):
+        # check existance of columns in dataframe columns
+        for column in column_name:
+            if column not in dataframe.columns:
+                raise ValueError(f"Invalid column '{column}' selected!")
+
+        columns = column_name
+
+    if window_size is not None and window_size % 2 != 0:
+        raise ValueError("Odd window size! Please select an even window size!")
+
+    def linear_regression(data: Series) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Predict
+
+        Args:
+            data (Series): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        x_values = data.index.values.reshape(-1, 1)
+        y_values = data.values.reshape(-1, 1)
+
+        # create and train the model
+        model = LinearRegression()
+        model.fit(x_values, y_values)
+
+        # Make predictions
+        y_predictions = model.predict(x_values)
+
+        # # construct the regression equation
+        # slope = model.coef_[0][0]
+        # intercept = model.intercept_[0]
+        # equation = f"y = {slope:.2f}x + {intercept:.2f}"
+
+        return y_values.flatten(), y_predictions.flatten()
+
+    data = dataframe.copy(deep=True)
+
+    if discard:
+        discard_indices_list = []
+
+    print("clean_outliers():")
+
+    for column in columns:
+
+        column_data = data[column]
+
+        print(len(column_data))
+
+        if not window_size:
+            y_values, y_predictions = linear_regression(column_data)
+        else:
+            # get only data from fully filled windows
+            n = data.shape[0] // window_size
+            y_values_list = []
+            y_predictions_list = []
+
+            # predict the fully filled windows
+            for i in range(n):
+                start = i * window_size
+                end = (i + 1) * window_size
+                sample = column_data.iloc[start:end]
+                y_values, y_predictions = linear_regression(sample)
+                y_values_list.append(y_values)
+                y_predictions_list.append(y_predictions)
+
+            if not discard:
+                # predict the final not fully filled window
+                sample = column_data.iloc[end:]
+                y_values, y_predictions = linear_regression(sample)
+                y_values_list.append(y_values)
+                y_predictions_list.append(y_predictions)
+
+            # merge all values to single ndarrays
+            y_values = np.vstack(y_values_list).flatten(order="C")
+            y_predictions = np.vstack(y_predictions_list).flatten(order="C")
+            print(y_predictions.shape)
+
+        # calculate residuals and standard deviation
+        residuals = y_values - y_predictions
+        std_deviation = np.std(residuals)
+
+        # identify outliers
+        threshold = std_multiplier * std_deviation
+        outliers = np.abs(residuals) > threshold
+
+        n_outliers = len(outliers)
+
+        if discard:
+            # collect row indices to discard
+            discard_indices = np.where(outliers == True)[0]
+            print(discard_indices.shape)
+            discard_indices_list.append(discard_indices)
+        else:
+            # adjust outliers with points on the regression line
+            data[column] = np.where(outliers, y_predictions, y_values)
+
+    if discard:
+        discard_indices = np.vstack(discard_indices_list).flatten(order="C")
+        print(discard_indices.shape)
+        data = data.drop(data.index[discard_indices])
 
     return data
