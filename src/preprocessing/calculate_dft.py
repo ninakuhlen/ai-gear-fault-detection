@@ -18,6 +18,8 @@ def calculate_dft(
             A list of columns or a single column name. Allows for glob notation.
         window_size (int, optional):
             The size of the window for wich the fourier coefficients are calculated. Defaults to 4096.
+        step_size (int, optional):
+            The step size to glide the window across the column data. Defaults to 4096.
         normalize (bool, optional):
             Whether to normalize the fourier coefficients. Defaults to True.
 
