@@ -39,7 +39,7 @@ def construct_fft_net_model(
         training_samples_dict (dict):
             A dictionary with training samples and labels to match the model input and output to.
         l2 (float, optional):
-            The factor of the l2 regularitzation penality. It is computed as: loss = l2 * reduce_sum(square(x)).
+            The factor of the l2 regularization penality. It is computed as: loss = l2 * reduce_sum(square(x)).
             Defaults to 1e-3.
         dropout (float, optional): The percentage of layer inputs to set to 0. Defaults to 0.2.
         negative_slope (float, optional): The negative slope of the LeakyReLU activation function. Defaults to 0.3.
@@ -84,7 +84,9 @@ def construct_fft_net_model(
     # add the number of hidden layers
     for _ in range(n_hidden_layers):
         model.add(
-            layers.Dense(units=dense_units, kernel_regularizer=regularizers.L2(l2))
+            layers.Dense(
+                units=dense_units, kernel_regularizer=regularizers.L2(l2)
+            )
         )
         model.add(layers.LeakyReLU(negative_slope=negative_slope))
         model.add(layers.Dropout(dropout))
@@ -116,7 +118,9 @@ def compile_model(
     """
 
     model.compile(
-        optimizer=keras.optimizers.SGD(learning_rate=learning_rate, momentum=momentum),
+        optimizer=keras.optimizers.SGD(
+            learning_rate=learning_rate, momentum=momentum
+        ),
         loss=keras.losses.CategoricalCrossentropy(),  # for non-binary classification
         metrics=[
             keras.metrics.CategoricalAccuracy(name="accuracy"),
@@ -133,7 +137,7 @@ def train_model(
     batch_size: int,
     validation_split: float = 0.1,
     use_early_stopping: bool = True,
-) -> keras.History.history:
+) -> keras.callbacks.History:
     """
     Trains the given keras Sequential model.
 
@@ -152,7 +156,7 @@ def train_model(
             Whether to use an EarlyStopping callback function. Defaults to True.
 
     Returns:
-        keras.History.history: A keras history object.
+        keras.callbacks.History: A keras history object.
     """
     callback_list = []
     if use_early_stopping:
@@ -195,7 +199,9 @@ def evaluate(model: keras.Sequential, test_samples_dict: dict) -> list[float]:
     )
 
 
-def predict(model: keras.Sequential, test_samples_dict: dict) -> list[np.ndarray]:
+def predict(
+    model: keras.Sequential, test_samples_dict: dict
+) -> list[np.ndarray]:
     """
     Generates predictions for the input samples.
 
