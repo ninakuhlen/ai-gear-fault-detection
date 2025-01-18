@@ -57,8 +57,8 @@ def apply_threshold(
     current_length = data.shape[0]
     data.attrs["sample_size"] = f"{current_length:_}"
 
-    print("apply_threshold():")
-    print(f"\t{previous_length - current_length} rows discarded.\n")
+    print("\napply_threshold():")
+    print(f"\t{previous_length - current_length} rows discarded.")
 
     if reset_index:
         data.reset_index(drop=True, inplace=True)

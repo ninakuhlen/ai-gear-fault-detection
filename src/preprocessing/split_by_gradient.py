@@ -2,7 +2,7 @@ import numpy as np
 from pandas import DataFrame
 
 
-def split_by_gradient_direction(
+def split_by_gradient(
     dataframe: DataFrame,
     column: str,
     periods: int = 1,
@@ -11,7 +11,7 @@ def split_by_gradient_direction(
     reset_index: bool = False,
 ) -> list[DataFrame]:
     """
-    Analyses the data of a specified pandas DataFrame column for gradient directions and splits the dataset accordingly.
+    Analyse the data of a specified pandas DataFrame column for gradient directions and splits the dataset accordingly.
 
     Args:
         dataframe (DataFrame):

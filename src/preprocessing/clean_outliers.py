@@ -58,15 +58,6 @@ def clean_outliers(
         raise ValueError("Odd window size! Please select an even window size!")
 
     def linear_regression(data: Series) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Predict
-
-        Args:
-            data (Series): _description_
-
-        Returns:
-            _type_: _description_
-        """
         x_values = data.index.values.reshape(-1, 1)
         y_values = data.values.reshape(-1, 1)
 
@@ -77,11 +68,6 @@ def clean_outliers(
         # Make predictions
         y_predictions = model.predict(x_values)
 
-        # # construct the regression equation
-        # slope = model.coef_[0][0]
-        # intercept = model.intercept_[0]
-        # equation = f"y = {slope:.2f}x + {intercept:.2f}"
-
         return y_values.flatten(), y_predictions.flatten()
 
     data = dataframe.copy(deep=True)
@@ -89,13 +75,11 @@ def clean_outliers(
     if discard:
         discard_indices_list = []
 
-    print("clean_outliers():")
+    print("\nclean_outliers():")
 
     for column in columns:
 
         column_data = data[column]
-
-        print(len(column_data))
 
         if not window_size:
             y_values, y_predictions = linear_regression(column_data)
@@ -134,12 +118,13 @@ def clean_outliers(
         threshold = std_multiplier * std_deviation
         outliers = np.abs(residuals) > threshold
 
-        n_outliers = len(outliers)
+        n_outliers = len(outliers[outliers == True])
+
+        print(f"{n_outliers} values adjusted/discarded from column '{column}'!")
 
         if discard:
             # collect row indices to discard
             discard_indices = np.where(outliers == True)[0]
-            print(discard_indices.shape)
             discard_indices_list.append(discard_indices)
         else:
             # adjust outliers with points on the regression line
@@ -147,7 +132,6 @@ def clean_outliers(
 
     if discard:
         discard_indices = np.vstack(discard_indices_list).flatten(order="C")
-        print(discard_indices.shape)
         data = data.drop(data.index[discard_indices])
 
     return data
