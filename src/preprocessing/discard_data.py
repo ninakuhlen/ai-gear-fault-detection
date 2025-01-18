@@ -44,7 +44,7 @@ def discard_data(
     elif end is None:
         end = data.index.max()
 
-    print("discard_data():")
+    print("\ndiscard_data():")
 
     if is_float_dtype(data.index):
         _, current_unit = data.attrs["index_type"].split("_")
