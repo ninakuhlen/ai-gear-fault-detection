@@ -28,7 +28,7 @@ def construct_fft_net_model(
     negative_slope: float = 0.3,
 ) -> keras.Sequential:
     """
-    Constructor for the keras Sequential model. Depending on the input shape, the model contains
+    Constructor for the keras Sequential model optimized for multiclass classification. Depending on the input shape, the model contains
     a backbone of convolutional layers followed by a set of fully connected hidden layers. A single
     hidden layer consists of a dense layer, a LeakyReLU activation layer and a dropout layer. If 1d
     training samples are given, no convolutions will be build in the model.
@@ -45,7 +45,7 @@ def construct_fft_net_model(
         negative_slope (float, optional): The negative slope of the LeakyReLU activation function. Defaults to 0.3.
 
     Returns:
-        keras.Sequential: A model of the described neural network.
+        keras.Sequential: A model of the described neural network optimized for multiclass classification.
     """
 
     input_shape = training_samples_dict["samples"].shape[1:]
@@ -84,12 +84,14 @@ def construct_fft_net_model(
     # add the number of hidden layers
     for _ in range(n_hidden_layers):
         model.add(
-            layers.Dense(units=dense_units, kernel_regularizer=regularizers.L2(l2))
+            layers.Dense(
+                units=dense_units, kernel_regularizer=regularizers.L2(l2)
+            )
         )
         model.add(layers.LeakyReLU(negative_slope=negative_slope))
         model.add(layers.Dropout(dropout))
 
-    model.add(layers.Dense(output_shape, activation="sigmoid"))
+    model.add(layers.Dense(output_shape, activation="softmax"))
 
     model.summary()
     return model
@@ -98,8 +100,6 @@ def construct_fft_net_model(
 def compile_model(
     model: keras.Sequential,
     learning_rate: float = 1e-4,
-    momentum: float = 0.9,
-    threshold: float = 0.95,
 ):
     """
     Compiles the given keras Sequential model.
@@ -108,20 +108,16 @@ def compile_model(
         model (keras.Sequential):
             The model to compile.
         learning_rate (float):
-            The learning rate used by the SGD optimizer.
-        momentum (float):
-            The momentum used by SGD to accelerate the gradient descent.
-        threshold (float):
-            The threshold of the precision and recall metrics.
+            The learning rate used by the Adam optimizer.
     """
 
     model.compile(
-        optimizer=keras.optimizers.SGD(learning_rate=learning_rate, momentum=momentum),
-        loss=keras.losses.CategoricalCrossentropy(),  # for non-binary classification
+        optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
+        loss=keras.losses.CategoricalCrossentropy(),  # for multiclass classification
         metrics=[
             keras.metrics.CategoricalAccuracy(name="accuracy"),
-            keras.metrics.Precision(name="precision", thresholds=threshold),
-            keras.metrics.Recall(name="recall", thresholds=threshold),
+            keras.metrics.Precision(name="precision"),
+            keras.metrics.Recall(name="recall"),
         ],
     )
 
@@ -135,13 +131,16 @@ def train_model(
     use_early_stopping: bool = True,
 ) -> callbacks.History:
     """
-    Trains the given keras Sequential model.
+    Trains the given keras Sequential model for multiclass classification.
 
     Args:
         model (keras.Sequential):
             The model to train.
         samples_dict (dict):
-            The samples dictionary containing training data.
+            The samples dictionary containing:
+                - "samples": The input training data (features).
+                - "labels": One-hot encoded labels for multiclass classification.
+                - "class_weights": Class weights for handling imbalanced datasets.
         epochs (int):
             The number of epochs for training.
         batch_size (int):
@@ -152,7 +151,7 @@ def train_model(
             Whether to use an EarlyStopping callback function. Defaults to True.
 
     Returns:
-        callbacks.History: A keras History object.
+        callbacks.History: A keras history object containing the training metrics.
     """
     callback_list = []
     if use_early_stopping:
@@ -195,7 +194,9 @@ def evaluate(model: keras.Sequential, test_samples_dict: dict) -> list[float]:
     )
 
 
-def predict(model: keras.Sequential, test_samples_dict: dict) -> list[np.ndarray]:
+def predict(
+    model: keras.Sequential, test_samples_dict: dict
+) -> list[np.ndarray]:
     """
     Generates predictions for the input samples.
 
