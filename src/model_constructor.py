@@ -174,7 +174,7 @@ def train_model(
 
 def evaluate(
     model: keras.Sequential, test_samples_dict: dict, batch_size: int
-) -> list[float]:
+) -> dict[str, float]:
     """
     Evaluates the performance of a given keras Sequential model.
 
