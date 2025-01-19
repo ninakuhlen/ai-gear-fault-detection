@@ -83,8 +83,8 @@ def concatenate_datasets(
                 dataset["label"] = "none"
             else:
                 dataset["label"] = "some"
-
-        dataset["label"] = dataset.attrs["unbalance"]
+        else:
+            dataset["label"] = dataset.attrs["unbalance"]
         datasets[index] = dataset
 
     concatenated_datasets = concat(datasets, keys=keys)
@@ -160,7 +160,7 @@ def check_data(sample_dict: dict):
     unique_labels = np.unique(labels)
     class_counts = np.sum(one_hot_encoded_labels, axis=0)
 
-    print("\ncheck_data():\n")
+    print("\ncheck_data():")
 
     for entry in zip(unique_labels, class_counts):
         print(f"\tClass '{entry[0]}':\t{entry[1]} samples")
