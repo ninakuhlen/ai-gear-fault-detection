@@ -58,6 +58,7 @@ def apply_threshold(
     data.attrs["sample_size"] = f"{current_length:_}"
 
     print("\napply_threshold():")
+    print(f"\tInput:\t{dataframe.attrs['path'].stem}")
     print(f"\t{previous_length - current_length} rows discarded.")
 
     if reset_index:

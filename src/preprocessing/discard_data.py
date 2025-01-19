@@ -45,6 +45,7 @@ def discard_data(
         end = data.index.max()
 
     print("\ndiscard_data():")
+    print(f"\tInput:\t{dataframe.attrs['path'].stem}")
 
     if is_float_dtype(data.index):
         _, current_unit = data.attrs["index_type"].split("_")

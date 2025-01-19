@@ -17,15 +17,14 @@ def random_resample(
 
     data = dataframe.copy(deep=True)
 
-    match type(sample_size):
-        case "int":
-            data = data.sample(
-                n=sample_size, random_state=random_state, ignore_index=0
-            ).sort_index()
-        case "float":
-            data = data.sample(
-                frac=sample_size, random_state=random_state, ignore_index=0
-            ).sort_index()
+    if isinstance(sample_size, int):
+        data = data.sample(
+            n=sample_size, random_state=random_state, ignore_index=0
+        ).sort_index()
+    elif isinstance(sample_size, float):
+        data = data.sample(
+            frac=sample_size, random_state=random_state, ignore_index=0
+        ).sort_index()
     data.reset_index(drop=True, inplace=True)
 
     current_length = data.shape[0]

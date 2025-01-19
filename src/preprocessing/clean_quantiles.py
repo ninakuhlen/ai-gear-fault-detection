@@ -52,6 +52,7 @@ def clean_quantiles(
     old_length = len(data)
 
     print("\nclean_quantiles():")
+    print(f"\tInput:\t{dataframe.attrs['path'].stem}")
 
     for column in columns:
         column_data = data[column]
