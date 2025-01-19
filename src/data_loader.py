@@ -95,14 +95,14 @@ def load_dataset(path: Path) -> DataFrame:
     """
 
     dataframe = read_csv(path)
-    # dataframe.attrs["path"] = path
 
     try:
         file = list(path.parent.rglob("meta_data.yaml"))[0]
         yaml_data = safe_load(file.read_text())
         dataframe.attrs = yaml_data[path.stem]
         dataframe.attrs["path"] = path
-        dataframe.attrs["index_type"] = "standard"
+        if "index_type" not in dataframe.attrs.keys():
+            dataframe.attrs["index_type"] = "index"
         dataframe.attrs["sample_size"] = dataframe.shape[0]
 
     except IndexError:

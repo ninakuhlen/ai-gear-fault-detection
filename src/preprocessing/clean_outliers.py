@@ -76,6 +76,7 @@ def clean_outliers(
         discard_indices_list = []
 
     print("\nclean_outliers():")
+    print(f"\tInput:\t{dataframe.attrs['path'].stem}")
 
     for column in columns:
 
@@ -98,17 +99,22 @@ def clean_outliers(
                 y_values_list.append(y_values)
                 y_predictions_list.append(y_predictions)
 
-            if not discard:
-                # predict the final not fully filled window
-                sample = column_data.iloc[end:]
+            # predict the final not fully filled window
+            sample = column_data.iloc[end:]
+            if len(sample):
                 y_values, y_predictions = linear_regression(sample)
+                n_nan = window_size - len(y_values)
+                print(n_nan)
+                y_values = np.append(y_values, np.repeat(np.nan, n_nan))
+                y_predictions = np.append(y_predictions, np.repeat(np.nan, n_nan))
                 y_values_list.append(y_values)
                 y_predictions_list.append(y_predictions)
 
             # merge all values to single ndarrays
             y_values = np.vstack(y_values_list).flatten(order="C")
+            y_values = y_values[~np.isnan(y_values)]
             y_predictions = np.vstack(y_predictions_list).flatten(order="C")
-            print(y_predictions.shape)
+            y_predictions = y_predictions[~np.isnan(y_predictions)]
 
         # calculate residuals and standard deviation
         residuals = y_values - y_predictions
@@ -120,7 +126,7 @@ def clean_outliers(
 
         n_outliers = len(outliers[outliers == True])
 
-        print(f"{n_outliers} values adjusted/discarded from column '{column}'!")
+        print(f"\t{n_outliers} values adjusted/discarded from column '{column}'!")
 
         if discard:
             # collect row indices to discard
