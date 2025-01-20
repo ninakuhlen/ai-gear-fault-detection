@@ -79,10 +79,10 @@ def concatenate_datasets(
         attrs = compare_merge_attributes(attrs, dataset.attrs)
 
         if use_binary_labeling:
-            if dataset.attrs["unbalance"] == "none":
-                dataset["label"] = "none"
+            if dataset.attrs["unbalance"] == "0 none":
+                dataset["label"] = "0 none"
             else:
-                dataset["label"] = "some"
+                dataset["label"] = "1 some"
         else:
             dataset["label"] = dataset.attrs["unbalance"]
         datasets[index] = dataset
