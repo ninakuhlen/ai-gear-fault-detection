@@ -66,7 +66,9 @@ def build_model(
     # add the number of hidden layers
     for _ in range(n_hidden_layers):
         model.add(
-            layers.Dense(units=dense_units, kernel_regularizer=regularizers.L2(l2))
+            layers.Dense(
+                units=dense_units, kernel_regularizer=regularizers.L2(l2)
+            )
         )
         model.add(layers.LeakyReLU(negative_slope=negative_slope))
         model.add(layers.Dropout(dropout))
@@ -98,5 +100,6 @@ def compile(
             keras.metrics.CategoricalAccuracy(name="accuracy"),
             keras.metrics.Precision(name="precision"),
             keras.metrics.Recall(name="recall"),
+            keras.metrics.F1Score(name="f1_score"),
         ],
     )
