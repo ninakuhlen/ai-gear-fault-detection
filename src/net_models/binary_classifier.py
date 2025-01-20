@@ -36,32 +36,8 @@ def build_model(
     model = keras.Sequential()
     model.add(layers.Input(input_shape))
 
-    if len(input_shape) == 1:
-        model.add(layers.Dense(2048))
-        dense_units = 1024
-    else:
-        model.add(
-            layers.Conv1D(
-                filters=64,
-                kernel_size=3,
-                activation="relu",
-                padding="same",
-                kernel_regularizer=regularizers.L2(l2),
-            )
-        )
-        model.add(layers.MaxPool1D(pool_size=2, strides=2, padding="valid"))
-
-        model.add(
-            layers.Conv1D(
-                filters=128,
-                kernel_size=3,
-                activation="relu",
-                padding="same",
-                kernel_regularizer=regularizers.L2(l2),
-            )
-        )
-        dense_units = 128
-        model.add(layers.GlobalMaxPooling1D())
+    model.add(layers.Dense(2048))
+    dense_units = 1024
 
     # add the number of hidden layers
     for _ in range(n_hidden_layers):
@@ -71,7 +47,7 @@ def build_model(
         model.add(layers.LeakyReLU(negative_slope=negative_slope))
         model.add(layers.Dropout(dropout))
 
-    model.add(layers.Dense(output_shape, activation="softmax"))
+    model.add(layers.Dense(output_shape, activation="sigmoid"))
 
     model.summary()
     return model
@@ -93,10 +69,11 @@ def compile(
 
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
-        loss=keras.losses.CategoricalCrossentropy(),  # for multiclass classification
+        loss=keras.losses.BinaryCrossentropy(),  # for binary classification
         metrics=[
-            keras.metrics.CategoricalAccuracy(name="accuracy"),
+            keras.metrics.BinaryAccuracy(name="accuracy"),
             keras.metrics.Precision(name="precision"),
             keras.metrics.Recall(name="recall"),
+            keras.metrics.F1Score(name="f1_score"),
         ],
     )
