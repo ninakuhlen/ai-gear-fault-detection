@@ -1,0 +1,110 @@
+0D:
+  sample_rate: 4096 # Hz
+  unbalance: "0 none"
+  type: development
+  mass: 0.0 # g
+  mass_tolerance: 0.0 # g
+  radius: 0.0 # mm
+  radius_tolerance: 0.0 # mm
+  voltage_start: 2.0 # V
+  voltage_end: 10.05 # V
+  voltage_step: 0.05 # V
+0E:
+  sample_rate: 4096
+  unbalance: "0 none"
+  type: evaluation
+  mass: 0.0
+  mass_tolerance: 0.0
+  radius: 0.0
+  radius_tolerance: 0.0
+  voltage_start: 4.0
+  voltage_end: 8.1
+  voltage_step: 0.1
+1D:
+  sample_rate: 4096
+  unbalance: "1 slight"
+  type: development
+  mass: 3.281
+  mass_tolerance: 0.003
+  radius: 14.0
+  radius_tolerance: 0.1
+  voltage_start: 2.0
+  voltage_end: 10.05
+  voltage_step: 0.05
+1E:
+  sample_rate: 4096
+  unbalance: "1 slight"
+  type: evaluation
+  mass: 3.281
+  mass_tolerance: 0.003
+  radius: 14.0
+  radius_tolerance: 0.1
+  voltage_start: 4.0
+  voltage_end: 8.1
+  voltage_step: 0.1
+2D:
+  sample_rate: 4096
+  unbalance: "2 moderat"
+  type: development
+  mass: 3.281
+  mass_tolerance: 0.003
+  radius: 18.5
+  radius_tolerance: 0.1
+  voltage_start: 2.0
+  voltage_end: 10.05
+  voltage_step: 0.05
+2E:
+  sample_rate: 4096
+  unbalance: "2 moderat"
+  type: evaluation
+  mass: 3.281
+  mass_tolerance: 0.003
+  radius: 18.5
+  radius_tolerance: 0.1
+  voltage_start: 4.0
+  voltage_end: 8.1
+  voltage_step: 0.1
+3D:
+  sample_rate: 4096
+  unbalance: "3 significant"
+  type: development
+  mass: 3.281
+  mass_tolerance: 0.003
+  radius: 23.0
+  radius_tolerance: 0.1
+  voltage_start: 2.0
+  voltage_end: 10.05
+  voltage_step: 0.05
+3E:
+  sample_rate: 4096
+  unbalance: "3 significant"
+  type: evaluation
+  mass: 3.281
+  mass_tolerance: 0.003
+  radius: 23.0
+  radius_tolerance: 0.1
+  voltage_start: 4.0
+  voltage_end: 8.1
+  voltage_step: 0.1
+4D:
+  sample_rate: 4096
+  unbalance: "4 strong"
+  type: development
+  mass: 6.614
+  mass_tolerance: 0.007
+  radius: 23.0
+  radius_tolerance: 0.1
+  voltage_start: 2.0
+  voltage_end: 10.05
+  voltage_step: 0.05
+4E:
+  sample_rate: 4096
+  unbalance: "4 strong"
+  type: evaluation
+  mass: 6.614
+  mass_tolerance: 0.007
+  radius: 23.0
+  radius_tolerance: 0.1
+  voltage_start: 4.0
+  voltage_end: 8.1
+  voltage_step: 0.1

@@ -1,0 +1,39 @@
+# L2 Regularizer 0.01
+A0:
+  epochs: 60
+  train:
+    accuracy: 0.9914
+    loss: 14.0746
+    precision: 0.7563
+    recall: 0.9902
+  eval:
+    accuracy: 0.5085659623146057
+    loss: 15.914297103881836
+    precision: 0.4122582674026489
+    recall: 0.48268839716911316
+# L2 Regularizer 0.1
+A1:
+  epochs: 60
+  train:
+    accuracy: 0.9810
+    loss: 1.6324
+    precision: 0.9860
+    recall: 0.7288
+  eval:
+    accuracy: 0.467712938785553
+    loss: 2.8187456130981445
+    precision: 0.9065789580345154
+    recall: 0.33017849922180176
+# L2 Regularizer 0.001
+A2:
+  epochs: 60
+  train:
+    accuracy: 0.9940
+    loss: 2.3053
+    precision: 0.7187
+    recall: 0.9945
+  eval:
+    accuracy: 0.5205463171005249
+    loss: 4.514516830444336
+    precision: 0.40797632932662964
+    recall: 0.5122798681259155

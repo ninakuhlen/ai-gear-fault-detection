@@ -1,3 +1,14 @@
+# ignored project folders
+data/documents/
+data/images/
+data/processed/
+
+# ignore csv files
+*.csv
+
+# ignore minimal reproducible examples (MRE)
+mre_*.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
