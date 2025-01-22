@@ -36,39 +36,13 @@ def build_model(
     model = keras.Sequential()
     model.add(layers.Input(input_shape))
 
-    if len(input_shape) == 1:
-        model.add(layers.Dense(2048))
-        dense_units = 1024
-    else:
-        model.add(
-            layers.Conv1D(
-                filters=64,
-                kernel_size=3,
-                activation="relu",
-                padding="same",
-                kernel_regularizer=regularizers.L2(l2),
-            )
-        )
-        model.add(layers.MaxPool1D(pool_size=2, strides=2, padding="valid"))
-
-        model.add(
-            layers.Conv1D(
-                filters=128,
-                kernel_size=3,
-                activation="relu",
-                padding="same",
-                kernel_regularizer=regularizers.L2(l2),
-            )
-        )
-        dense_units = 128
-        model.add(layers.GlobalMaxPooling1D())
+    model.add(layers.Dense(2048))
+    dense_units = 1024
 
     # add the number of hidden layers
     for _ in range(n_hidden_layers):
         model.add(
-            layers.Dense(
-                units=dense_units, kernel_regularizer=regularizers.L2(l2)
-            )
+            layers.Dense(units=dense_units, kernel_regularizer=regularizers.L2(l2))
         )
         model.add(layers.LeakyReLU(negative_slope=negative_slope))
         model.add(layers.Dropout(dropout))

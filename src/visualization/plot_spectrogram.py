@@ -1,16 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import figure
 from fnmatch import fnmatch
 from pandas import DataFrame
 
 
 def plot_spectrogram(
-    data_frame: DataFrame,
+    dataframe: DataFrame,
     column: str = "vibration_1_magnitude",
     aspect: str = None,
     cmap="viridis",
     figsize=(12, 6),
-):
+    return_only: bool = False,
+) -> figure:
     """
     Plots a pixel graphic (heatmap) of FFT data with frequency on the X-axis, RPM on the Y-axis,
     and magnitude as color intensity.
@@ -29,7 +31,7 @@ def plot_spectrogram(
         aspect = "auto"
 
     # Pivot-Tabelle erstellen
-    pivot_data = data_frame.pivot_table(
+    pivot_data = dataframe.pivot_table(
         values=column, index="rpm", columns="fft_frequency", fill_value=0
     )
 
@@ -44,7 +46,7 @@ def plot_spectrogram(
     )  # Logarithmische Transformation: log(1 + x)
 
     # Grafik erstellen
-    plt.figure(figsize=figsize)  # Breitere Darstellung
+    spectrogram = plt.figure(figsize=figsize)  # Breitere Darstellung
     plt.imshow(
         amplitude_matrix,
         aspect=aspect,  # Automatische Anpassung der Darstellung
@@ -66,4 +68,11 @@ def plot_spectrogram(
     plt.ylabel("Rotation Speed [rpm]")
     plt.title("FFT of Vibration Data - Transformed Test")
 
-    plt.show()
+    if not return_only:
+        plt.show()
+    else:
+        plt.close(spectrogram)
+
+    file_name = dataframe.attrs["path"].stem + "_spectrogram"
+
+    return {"figure": spectrogram, "file_name": file_name}
