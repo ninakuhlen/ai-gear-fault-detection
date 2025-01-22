@@ -3,6 +3,7 @@ from copy import deepcopy
 from pandas import DataFrame, read_csv
 from pathlib import Path
 from yaml import safe_load, safe_dump
+from tensorflow import keras
 
 DATASET_ADDRESS: str = "jishnukoliyadan/vibration-analysis-on-rotating-shaft"
 
@@ -157,3 +158,62 @@ def append_to_yaml(file: Path, data: dict):
         yaml_data = safe_load(file.read_text())
         yaml_data = yaml_data | data
         file.write_text(safe_dump(yaml_data))
+
+
+def save_figure(
+    parent_path: Path,
+    figure_dict: dict,
+    format: str = "png",
+    dpi: int = 300,
+):
+
+    parent_path.mkdir(mode=777, parents=True, exist_ok=True)
+
+    similar_files = list(parent_path.rglob(f"{figure_dict['file_name']}*.{format}"))
+
+    new_file_name = figure_dict["file_name"] + "_" + chr(97 + len(similar_files))
+
+    file_path = parent_path / f"{new_file_name}.{format}"
+
+    figure_dict["figure"].savefig(
+        file_path, format=format, dpi=dpi, bbox_inches="tight"
+    )
+
+
+def save_model_hyperparameters(
+    parent_path: Path,
+    model,
+    learning_rate: float,
+    batch_size: int,
+    epochs: int,
+    validation_split: float,
+):
+
+    dropout_rates = [
+        layer.rate for layer in model.layers if isinstance(layer, keras.layers.Dropout)
+    ]
+    l2_rates = [
+        layer.kernel_regularizer.l2
+        for layer in model.layers
+        if hasattr(layer, "kernel_regularizer")
+        and isinstance(layer.kernel_regularizer, keras.regularizers.L2)
+    ]
+
+    n_hidden_layers = len(model.layers) - 2
+
+    hyperparameters = {
+        "model": {
+            "learning_rate": learning_rate,
+            "dropout_rates": dropout_rates,
+            "l2_rates": l2_rates,
+            "n_hidden_layers": n_hidden_layers,
+        },
+        "training": {
+            "epochs": epochs,
+            "batch_size": batch_size,
+            "validation_split": validation_split,
+        },
+    }
+
+    yaml_path = parent_path / "hyperparameters.yaml"
+    append_to_yaml(file=yaml_path, data=hyperparameters)

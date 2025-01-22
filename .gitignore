@@ -2,9 +2,13 @@
 data/documents/
 data/images/
 data/processed/
+results/
 
 # ignore csv files
 *.csv
+
+# ignore png files
+*.png
 
 # ignore minimal reproducible examples (MRE)
 mre_*.py
