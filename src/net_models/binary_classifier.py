@@ -10,7 +10,7 @@ def build_model(
     negative_slope: float = 0.3,
 ) -> keras.Sequential:
     """
-    Constructor for the keras Sequential model optimized for multiclass classification. Depending on the input shape, the model contains
+    Constructor for the keras Sequential model optimized for binary classification. Depending on the input shape, the model contains
     a backbone of convolutional layers followed by a set of fully connected hidden layers. A single
     hidden layer consists of a dense layer, a LeakyReLU activation layer and a dropout layer. If 1d
     training samples are given, no convolutions will be build in the model.
