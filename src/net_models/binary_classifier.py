@@ -47,7 +47,7 @@ def build_model(
         model.add(layers.LeakyReLU(negative_slope=negative_slope))
         model.add(layers.Dropout(dropout))
 
-    model.add(layers.Dense(output_shape, activation="sigmoid"))
+    model.add(layers.Dense(output_shape, activation="softmax"))  # sigmoid
 
     model.summary()
     return model
